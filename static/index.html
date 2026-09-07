@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maigret OSINT Investigation Platform</title>
+    <link rel="icon" type="image/png" href="/logos/maigret%20logo%20shield.png">
     <style>
         :root {
             --bg-main: #0a0a0c;
@@ -211,9 +212,18 @@
                         <label>Or Top Sites: <input type="number" id="opt-top" value="500" oninput="updateSiteCountText()"></label>
                         <label>ID Type: 
                             <select id="opt-idtype" class="input-field" style="width: auto; padding: 4px 8px;">
-                                <option value="username">Username</option>
+                                <option value="username">Username (Default)</option>
+                                <option value="steam_id">Steam ID</option>
+                                <option value="vk_id">VKontakte (VK) ID</option>
+                                <option value="ok_id">Odnoklassniki (OK) ID</option>
                                 <option value="yandex_public_id">Yandex Public ID</option>
-                                <option value="uid">UID</option>
+                                <option value="gaia_id">Google Account (Gaia) ID</option>
+                                <option value="bilibili_id">Bilibili ID</option>
+                                <option value="yelp_userid">Yelp User ID</option>
+                                <option value="orcid">ORCID Researcher ID</option>
+                                <option value="qq_id">Tencent QQ ID</option>
+                                <option value="wikimapia_uid">Wikimapia UID</option>
+                                <option value="uidme_uguid">UID.me UGUID</option>
                             </select>
                         </label>
                     </div>
@@ -289,8 +299,8 @@
                         <button class="term-btn" onclick="clearTerminal()">Clear</button>
                     </div>
                 </div>
-                <div class="terminal-body" id="term-output" onclick="document.getElementById('term-input').focus()">MAIGRET OSINT FRAMEWORK v3.2.0 - INTERACTIVE CONSOLE
-Unified with Dashboard Backend. All commands must begin with 'maigret'.
+                <div class="terminal-body" id="term-output" onclick="document.getElementById('term-input').focus()">MAIGRET OSINT PLATFORM - INTERACTIVE CONSOLE [v0.6.5 Online]
+Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
 </div>
                 <div class="terminal-input-bar">
                     <span class="terminal-prompt">$</span>
@@ -383,12 +393,24 @@ Unified with Dashboard Backend. All commands must begin with 'maigret'.
             ws.onclose = function () { setTimeout(connectWebSocket, 2000); };
         }
 
+        function escapeHtml(str) {
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
         function formatLogLine(line) {
-            if (line.includes("FOUND") && !line.includes("NOT FOUND")) return `<span style="color: var(--accent-gold); font-weight: bold;">${line}</span>`;
-            if (line.includes("NOT FOUND")) return `<span style="color: #64748b;">${line}</span>`;
-            if (line.startsWith("[!]")) return `<span style="color: var(--status-red);">${line}</span>`;
-            if (line.startsWith("[✓]")) return `<span style="color: var(--status-green); font-weight: bold;">${line}</span>`;
-            return line;
+            const safe = escapeHtml(line);
+            if (safe.includes("FOUND") && !safe.includes("NOT FOUND")) return `<span style="color: var(--accent-gold); font-weight: bold;">${safe}</span>`;
+            if (safe.includes("NOT FOUND")) return `<span style="color: #64748b;">${safe}</span>`;
+            if (safe.startsWith("[!]")) return `<span style="color: var(--status-red);">${safe}</span>`;
+            if (safe.startsWith("[✓]")) return `<span style="color: var(--status-green); font-weight: bold;">${safe}</span>`;
+            if (safe.startsWith("[*]")) return `<span style="color: #60a5fa;">${safe}</span>`;
+            if (safe.startsWith("[+]")) return `<span style="color: #4ade80;">${safe}</span>`;
+            if (safe.startsWith("[-]")) return `<span style="color: #94a3b8;">${safe}</span>`;
+            return safe;
         }
 
         function appendTerminalLine(line) {
@@ -542,23 +564,24 @@ Unified with Dashboard Backend. All commands must begin with 'maigret'.
 
                 if (job.reports_generated && job.reports_generated.length > 0) {
                     const jobFolder = `/reports/job_${job.id}`;
-                    const hasPdf = job.reports_generated.includes('pdf');
-                    const hasInternal = job.reports_generated.includes('internal_html');
-                    const hasHtml = job.reports_generated.includes('html');
-                    
-                    let targetReport = "";
-                    if (hasInternal) targetReport = `${jobFolder}/report_${job.username}_internal.html`;
-                    else if (hasPdf) targetReport = `${jobFolder}/report_${job.username}.pdf`;
-                    else if (hasHtml) targetReport = `${jobFolder}/report_${job.username}.html`;
-
-                    if (targetReport) {
+                    job.reports_generated.forEach(rtype => {
+                        let filename = `report_${job.username}.${rtype}`;
+                        let displayName = rtype.toUpperCase();
+                        if (rtype === "internal_html") {
+                            filename = `report_${job.username}_internal.html`;
+                            displayName = "INTERNAL DOSSIER";
+                        }
+                        const targetReport = `${jobFolder}/${filename}`;
                         reportsContainer.innerHTML += `
-                            <div class="metric-card clickable-row" style="padding: 15px;" onclick="previewReport('${targetReport}')">
-                                <h4 style="color: var(--accent-gold); margin-bottom: 5px;">${job.username}</h4>
-                                <div style="font-size: 0.8rem; color: var(--text-dim);">Job #${job.id} • ${targetReport.split('.').pop().toUpperCase()}</div>
+                            <div class="metric-card clickable-row" style="padding: 14px; margin-bottom: 8px;" onclick="previewReport('${targetReport}')">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <h4 style="color: var(--accent-gold); font-size: 0.95rem;">${job.username}</h4>
+                                    <span class="badge" style="background: rgba(234, 179, 8, 0.15); color: var(--accent-gold); font-size: 0.7rem;">${displayName}</span>
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Job #${job.id} • ${job.created_at || ''}</div>
                             </div>
                         `;
-                    }
+                    });
                 }
             });
         }

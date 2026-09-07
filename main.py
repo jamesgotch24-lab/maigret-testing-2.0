@@ -1,14 +1,16 @@
 import os
+import sys
 import re
 import json
 import shlex
 import asyncio
+import subprocess
 import datetime
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 DB_FILE = "search_history.json"
@@ -26,7 +28,7 @@ class InvestigationJob:
         self.logs: List[str] = []
         self.reports_generated: List[str] = []
         self.cancel_event = asyncio.Event()
-        self.process: Optional[asyncio.subprocess.Process] = None
+        self.process: Optional[subprocess.Popen] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -165,6 +167,77 @@ def generate_internal_dossier(username: str, job_folder: str):
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(html)
 
+def resolve_maigret_cmd(cmd_args: List[str]) -> List[str]:
+    args = list(cmd_args)
+    if args and args[0] == "maigret":
+        return [sys.executable, "-m", "maigret"] + args[1:]
+    return args
+
+def get_subprocess_env() -> Dict[str, str]:
+    env = os.environ.copy()
+    tools_maigret = os.path.abspath(os.path.join(os.path.dirname(__file__), "tools", "maigret"))
+    if "PYTHONPATH" in env:
+        env["PYTHONPATH"] = f"{tools_maigret}{os.pathsep}{env['PYTHONPATH']}"
+    else:
+        env["PYTHONPATH"] = tools_maigret
+    env["PYTHONUNBUFFERED"] = "1"
+    return env
+
+def extract_target_username(tokens: List[str]) -> Optional[str]:
+    flags_with_arg = {
+        "-n", "--top", "-t", "--timeout", "--retries", "--folderoutput", "--folder",
+        "--idtype", "--tags", "--site", "--use-disabled-sites", "--parse",
+        "--cookie-jar-file", "--proxy", "--tor-proxy", "--i2p-proxy", "--db"
+    }
+    skip_next = False
+    for token in tokens[1:]:
+        if skip_next:
+            skip_next = False
+            continue
+        if token in flags_with_arg:
+            skip_next = True
+            continue
+        if not token.startswith("-"):
+            return token
+    return None
+
+def is_informational_maigret_cmd(tokens: List[str]) -> bool:
+    info_flags = {"--help", "-h", "--version", "-V", "--list-sites", "--stats", "--self-check"}
+    if len(tokens) <= 1:
+        return True
+    if any(t in info_flags for t in tokens):
+        return True
+    if extract_target_username(tokens) is None:
+        return True
+    return False
+
+async def run_direct_cli_command(cmd_args: List[str]):
+    proc = None
+    try:
+        resolved_cmd = resolve_maigret_cmd(cmd_args)
+        proc = subprocess.Popen(
+            resolved_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=get_subprocess_env()
+        )
+        while True:
+            line_bytes = await asyncio.to_thread(proc.stdout.readline)
+            if not line_bytes:
+                break
+            clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\r\n')
+            if clean_line:
+                await broadcast_message({"type": "terminal_log", "job_id": None, "line": clean_line})
+        await asyncio.to_thread(proc.wait)
+    except Exception as e:
+        await broadcast_message({"type": "terminal_log", "job_id": None, "line": f"[!] CLI Error: {repr(e)}"})
+    finally:
+        if proc and proc.stdout:
+            try:
+                proc.stdout.close()
+            except Exception:
+                pass
+
 async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
     job.status = "running"
     save_db()
@@ -182,54 +255,55 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
     await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": log_header})
 
     try:
-        job.process = await asyncio.create_subprocess_exec(
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            limit=10485760 
+        resolved_cmd = resolve_maigret_cmd(cmd_args)
+        job.process = subprocess.Popen(
+            resolved_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            env=get_subprocess_env()
         )
 
         while True:
             if job.cancel_event.is_set():
-                job.process.terminate()
+                if job.process and job.process.poll() is None:
+                    try:
+                        job.process.terminate()
+                    except Exception:
+                        pass
                 job.status = "cancelled"
                 cancel_msg = f"\n[!] Investigation #{job.id} halted by operator."
                 job.logs.append(cancel_msg)
                 await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": cancel_msg})
                 break
 
-            line_bytes = await job.process.stdout.readline()
+            line_bytes = await asyncio.to_thread(job.process.stdout.readline)
             if not line_bytes:
                 break
             
-            clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\n')
+            clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\r\n')
             if clean_line:
                 job.logs.append(clean_line)
                 if "FOUND" in clean_line and "NOT FOUND" not in clean_line and "Starting" not in clean_line:
                     job.found_sites += 1
                 await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": clean_line})
 
-        await job.process.wait()
+        await asyncio.to_thread(job.process.wait)
         if job.status != "cancelled":
             job.status = "completed"
             
         job.completed_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        potential_reports = {
-            "html": os.path.join(job_folder, f"report_{job.username}.html"),
-            "pdf": os.path.join(job_folder, f"report_{job.username}.pdf"),
-            "json": os.path.join(job_folder, f"report_{job.username}.json"),
-            "csv": os.path.join(job_folder, f"report_{job.username}.csv"),
-            "txt": os.path.join(job_folder, f"report_{job.username}.txt")
-        }
-        
-        for rep_type, path in potential_reports.items():
-            if os.path.exists(path):
-                job.reports_generated.append(rep_type)
+        if os.path.exists(job_folder):
+            for fname in os.listdir(job_folder):
+                ext = fname.split(".")[-1].lower()
+                if ext in ["html", "pdf", "json", "csv", "txt", "xmind", "md"]:
+                    if ext not in job.reports_generated:
+                        job.reports_generated.append(ext)
 
         if job.options.get("pdf_style") == "internal" or job.options.get("internal_format"):
             generate_internal_dossier(job.username, job_folder)
-            job.reports_generated.append("internal_html")
+            if "internal_html" not in job.reports_generated:
+                job.reports_generated.append("internal_html")
 
         completion_msg = f"\n[✓] Job #{job.id} concluded. {job.found_sites} returned accounts verified."
         job.logs.append(completion_msg)
@@ -239,7 +313,7 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
 
     except Exception as e:
         job.status = "failed"
-        err_msg = f"[!] Core Execution Error: {str(e)}"
+        err_msg = f"[!] Core Execution Error: {repr(e)}"
         job.logs.append(err_msg)
         save_db()
         await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": err_msg})
@@ -264,6 +338,13 @@ class GUIStartRequest(BaseModel):
 
 class CommandRequest(BaseModel):
     command: str
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    favicon_path = os.path.join("logos", "maigret logo shield.png")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    return Response(status_code=204)
 
 @app.get("/")
 async def serve_index():
@@ -298,6 +379,11 @@ async def cancel_job(job_id: int):
     job = jobs_db[job_id]
     if job.status == "running":
         job.cancel_event.set()
+        if job.process and job.process.poll() is None:
+            try:
+                job.process.terminate()
+            except Exception:
+                pass
         save_db()
         return {"status": "cancelling"}
     return {"status": "inactive"}
@@ -318,22 +404,24 @@ async def start_gui_search(req: GUIStartRequest):
     
     cmd_args = ["maigret", username]
     if req.all_sites:
-        cmd_args.append("--all")
+        cmd_args.append("--all-sites")
     else:
-        cmd_args.extend(["--top", str(req.top_sites)])
+        cmd_args.extend(["--top-sites", str(req.top_sites)])
     
     if req.tags:
-        cmd_args.extend(["--tags", ",".join(req.tags)])
+        cleaned_tags = [t.strip() for t in req.tags if t.strip()]
+        if cleaned_tags:
+            cmd_args.extend(["--tags", ",".join(cleaned_tags)])
     
     cmd_args.extend(["--timeout", str(req.timeout)])
-    if req.id_type != "username":
-        cmd_args.extend(["--idtype", req.id_type])
+    if req.id_type and req.id_type != "username":
+        cmd_args.extend(["--id-type", req.id_type])
     
     if req.permute: cmd_args.append("--permute")
     if req.cloudflare_bypass: cmd_args.append("--cloudflare-bypass")
     if req.report_html: cmd_args.append("--html")
     if req.report_pdf: cmd_args.append("--pdf")
-    if req.report_json: cmd_args.append("--json")
+    if req.report_json: cmd_args.extend(["--json", "simple"])
     if req.report_csv: cmd_args.append("--csv")
     if req.report_txt: cmd_args.append("--txt")
 
@@ -364,6 +452,9 @@ async def execute_terminal_command(req: CommandRequest):
                 "MAIGRET DASHBOARD INTERACTIVE CONSOLE\n"
                 "====================================================\n"
                 "  maigret <user> [options]       Execute dossier investigation\n"
+                "  maigret --help / -h            Display all native Maigret CLI flags and options\n"
+                "  maigret --version              Display Maigret engine version\n"
+                "  maigret --list-sites           List all supported OSINT platforms\n"
                 "  cancel                         Halt active search\n"
                 "  investigations / jobs          Display recent dossier investigations\n"
                 "  open <id>                      Navigate GUI to investigation #<id>\n"
@@ -398,24 +489,40 @@ async def execute_terminal_command(req: CommandRequest):
         for j in jobs_db.values():
             if j.status == "running":
                 j.cancel_event.set()
+                if j.process and j.process.poll() is None:
+                    try:
+                        j.process.terminate()
+                    except Exception:
+                        pass
         save_db()
         return {"output": f"[*] Cancellation signal sent.\n"}
 
     if primary == "maigret":
-        if len(tokens) < 2:
-            return {"output": "Error: Target username required. Usage: maigret <username> [options]\n"}
-        
-        target_user = tokens[1]
+        if is_informational_maigret_cmd(tokens):
+            asyncio.create_task(run_direct_cli_command(tokens))
+            return {"output": ""}
+
+        target_user = extract_target_username(tokens)
+        if not target_user:
+            asyncio.create_task(run_direct_cli_command(tokens))
+            return {"output": ""}
+
         global job_id_counter
         job_id_counter += 1
         new_job = InvestigationJob(job_id_counter, target_user, {"raw_cmd": raw_cmd}, "terminal")
         jobs_db[new_job.id] = new_job
         save_db()
-        
-        asyncio.create_task(run_maigret_subprocess(new_job, tokens))
-        return {"output": f"[+] Investigation #{new_job.id} queued. Engine starting...\n", "job_id": new_job.id}
 
-    return {"output": f"Unknown command: '{primary}'. Type 'help'.\n"}
+        # If user did not specify any report flag, default to generating HTML report
+        cmd_with_reports = list(tokens)
+        has_report_flag = any(f in cmd_with_reports for f in ["--html", "--pdf", "--json", "--csv", "--txt", "-a"])
+        if not has_report_flag:
+            cmd_with_reports.append("--html")
+
+        asyncio.create_task(run_maigret_subprocess(new_job, cmd_with_reports))
+        return {"output": f"[+] Investigation #{new_job.id} queued for target '{target_user}'. Engine starting...\n", "job_id": new_job.id}
+
+    return {"output": f"Unknown command: '{primary}'. Type 'help' or 'maigret --help'.\n"}
 
 @app.websocket("/ws/terminal")
 async def websocket_terminal_endpoint(websocket: WebSocket):
