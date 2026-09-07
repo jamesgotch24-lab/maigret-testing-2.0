@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
-from pydantic import BaseModel 
+from pydantic import BaseModel
 
 DB_FILE = "search_history.json"
 
