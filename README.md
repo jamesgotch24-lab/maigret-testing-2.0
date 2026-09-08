@@ -10,6 +10,7 @@
   [![Sites Supported](https://img.shields.io/badge/Sites_Supported-3%2C000%2B-EAB308?style=for-the-badge&logo=target&logoColor=black)](https://github.com/soxoj/maigret)
   [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
   [![Engine](https://img.shields.io/badge/Engine-Maigret%20v0.6.5-6366F1?style=for-the-badge)](https://github.com/soxoj/maigret)
+  [![Citation](https://img.shields.io/badge/Cite-CITATION.cff-blue?style=for-the-badge)](tools/maigret/CITATION.cff)
 
   <p align="center">
     <b>A premier OSINT investigation workstation combining the power of the Maigret engine with an ultra-responsive web dashboard, live WebSocket streaming terminal, and automated multi-format report generator.</b>
@@ -31,6 +32,7 @@
 - [Report Formats](#-report-formats)
 - [Configuration & Options](#-configuration--options)
 - [Troubleshooting & Windows Setup](#-troubleshooting--windows-setup)
+- [Citation & Attribution](#-citation--attribution)
 - [Credits & Acknowledgements](#-credits--acknowledgements)
 
 ---
@@ -286,6 +288,48 @@ If PDF generation fails or gives warnings:
 ```powershell
 py -m pip install xhtml2pdf
 ```
+
+---
+
+## 📚 Citation & Attribution
+
+If you use this software in academic research, security audits, investigative work, or derivative tools, please cite the original **Maigret** engine as requested by its authors:
+
+### Citation File Format (`CITATION.cff`)
+This repository includes a [`CITATION.cff`](tools/maigret/CITATION.cff) file compliant with CFF 1.2.0:
+
+```yaml
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "Maigret"
+abstract: "Collect a dossier on a person by username from thousands of sites."
+authors:
+  - name: "Soxoj"
+    website: "https://github.com/soxoj"
+repository-code: "https://github.com/soxoj/maigret"
+url: "https://maigret.readthedocs.io"
+license: MIT
+keywords:
+  - osint
+  - username-search
+  - social-media
+  - investigation
+```
+
+### BibTeX Format
+```bibtex
+@software{soxoj_maigret,
+  author       = {Soxoj},
+  title        = {Maigret: Collect a dossier on a person by username from thousands of sites},
+  url          = {https://github.com/soxoj/maigret},
+  howpublished = {\url{https://maigret.readthedocs.io}},
+  license      = {MIT}
+}
+```
+
+### Text Format
+> Soxoj. *Maigret: Collect a dossier on a person by username from thousands of sites.* Software available from https://github.com/soxoj/maigret and https://maigret.readthedocs.io.
 
 ---
 
