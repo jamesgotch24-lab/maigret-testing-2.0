@@ -185,7 +185,7 @@ def update_maigret(check_only: bool = False, skip_db: bool = False, force: bool 
 
     # Step 4: Fetch Latest Changes from Origin
     log_info("Fetching latest commits from upstream (origin/main)...")
-    code, _, err = run_command(["git", "fetch", "origin", "main"], cwd=MAIGRET_DIR, capture=True)
+    code, _, err = run_command(["git", "fetch", "origin", "refs/heads/main:refs/remotes/origin/main"], cwd=MAIGRET_DIR, capture=True)
     if code != 0:
         # Fallback to fetching all branches
         code, _, err = run_command(["git", "fetch", "origin"], cwd=MAIGRET_DIR, capture=True)
@@ -214,7 +214,7 @@ def update_maigret(check_only: bool = False, skip_db: bool = False, force: bool 
             run_command(["git", "reset", "--hard", "origin/main"], cwd=MAIGRET_DIR)
             pull_code, _, pull_err = 0, "", ""
         else:
-            pull_code, _, pull_err = run_command(["git", "pull", "origin", "main"], cwd=MAIGRET_DIR, capture=True)
+            pull_code, _, pull_err = run_command(["git", "pull", "--ff-only", "origin", "refs/heads/main"], cwd=MAIGRET_DIR, capture=True)
 
         if pull_code != 0:
             log_error(f"Git pull failed: {pull_err}")

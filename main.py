@@ -287,6 +287,8 @@ def get_subprocess_env() -> Dict[str, str]:
     else:
         env["PYTHONPATH"] = tools_maigret
     env["PYTHONUNBUFFERED"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"
+    env["PYTHONUTF8"] = "1"
     return env
 
 def extract_target_username(tokens: List[str]) -> Optional[str]:
@@ -396,7 +398,8 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
             clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\r\n')
             if clean_line:
                 job.logs.append(clean_line)
-                if "FOUND" in clean_line and "NOT FOUND" not in clean_line and "Starting" not in clean_line:
+                if (("FOUND" in clean_line and "NOT FOUND" not in clean_line and "Starting" not in clean_line)
+                    or (clean_line.startswith("[+] ") and "http" in clean_line and "MAIGRET" not in clean_line)):
                     job.found_sites += 1
                 await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": clean_line})
 
@@ -516,6 +519,21 @@ async def delete_job(job_id: int):
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Investigation not found.")
 
+@app.get("/html")
+async def cloudflare_bypass_html_proxy(url: str, retries: int = 1):
+    """
+    Built-in proxy resolver for Maigret's Cloudflare bypass fallback.
+    Uses curl_cffi with Chrome TLS/HTTP2 fingerprint impersonation to retrieve
+    protected pages directly without requiring an external Docker solver.
+    """
+    try:
+        from curl_cffi.requests import AsyncSession
+        async with AsyncSession(impersonate="chrome124") as s:
+            resp = await s.get(url, timeout=20)
+            return Response(content=resp.text, status_code=resp.status_code, media_type="text/html")
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Bypass fetch error: {str(e)}")
+
 @app.post("/api/search")
 async def start_gui_search(req: GUIStartRequest):
     username = req.username.strip()
@@ -546,6 +564,8 @@ async def start_gui_search(req: GUIStartRequest):
     if req.report_json: cmd_args.extend(["--json", "simple"])
     if req.report_csv: cmd_args.append("--csv")
     if req.report_txt: cmd_args.append("--txt")
+    if "--no-progressbar" not in cmd_args:
+        cmd_args.append("--no-progressbar")
 
     global job_id_counter
     job_id_counter += 1
@@ -656,6 +676,8 @@ async def execute_terminal_command(req: CommandRequest):
         has_report_flag = any(f in cmd_with_reports for f in ["--html", "--pdf", "--json", "--csv", "--txt", "-a"])
         if not has_report_flag:
             cmd_with_reports.append("--html")
+        if "--no-progressbar" not in cmd_with_reports:
+            cmd_with_reports.append("--no-progressbar")
 
         asyncio.create_task(run_maigret_subprocess(new_job, cmd_with_reports))
         return {"output": f"[+] Investigation #{new_job.id} queued for target '{target_user}'. Engine starting...\n", "job_id": new_job.id}

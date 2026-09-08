@@ -293,10 +293,16 @@ py -m pip install xhtml2pdf
 
 ## 📚 Citation & Attribution
 
-If you use this software in academic research, security audits, investigative work, or derivative tools, please cite the original **Maigret** engine as requested by its authors:
+If you use this software or the underlying intelligence engine in academic research, security audits, investigative reporting, or derivative tools, please cite the upstream [Maigret](https://github.com/soxoj/maigret) project as requested by its authors:
 
-### Citation File Format (`CITATION.cff`)
-This repository includes a [`CITATION.cff`](tools/maigret/CITATION.cff) file compliant with CFF 1.2.0:
+### 📝 Text / APA Format
+> Soxoj. *Maigret: Collect a dossier on a person by username from thousands of sites.* Software repository: [https://github.com/soxoj/maigret](https://github.com/soxoj/maigret) • Documentation: [https://maigret.readthedocs.io](https://maigret.readthedocs.io).
+
+### 📄 Citation File Format (`CITATION.cff`)
+A machine-readable citation specification compliant with CFF 1.2.0 is maintained in [`tools/maigret/CITATION.cff`](tools/maigret/CITATION.cff).
+
+<details>
+<summary><b>Click to expand <code>CITATION.cff</code></b></summary>
 
 ```yaml
 cff-version: 1.2.0
@@ -317,19 +323,7 @@ keywords:
   - investigation
 ```
 
-### BibTeX Format
-```bibtex
-@software{soxoj_maigret,
-  author       = {Soxoj},
-  title        = {Maigret: Collect a dossier on a person by username from thousands of sites},
-  url          = {https://github.com/soxoj/maigret},
-  howpublished = {\url{https://maigret.readthedocs.io}},
-  license      = {MIT}
-}
-```
-
-### Text Format
-> Soxoj. *Maigret: Collect a dossier on a person by username from thousands of sites.* Software available from https://github.com/soxoj/maigret and https://maigret.readthedocs.io.
+</details>
 
 ---
 
