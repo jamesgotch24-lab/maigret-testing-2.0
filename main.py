@@ -14,6 +14,101 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 DB_FILE = "search_history.json"
+ENGINE_META_FILE = "engine_meta.json"
+
+def get_engine_meta() -> Dict[str, Any]:
+    if os.path.exists(ENGINE_META_FILE):
+        try:
+            with open(ENGINE_META_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data and "sites_count" in data:
+                    return data
+        except Exception:
+            pass
+
+    tools_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "tools", "maigret"))
+    home_db = os.path.expanduser("~/.maigret/data.json")
+    repo_db = os.path.join(tools_dir, "maigret", "resources", "data.json")
+    db_file = home_db if os.path.exists(home_db) else repo_db
+
+    sites_count = 4990
+    if os.path.exists(db_file):
+        try:
+            with open(db_file, "r", encoding="utf-8") as f:
+                db_data = json.load(f)
+            sites_dict = db_data.get("sites", {})
+            if sites_dict:
+                sites_count = len(sites_dict)
+        except Exception:
+            pass
+
+    commit = "12ec10b"
+    commit_date = ""
+    try:
+        res = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=tools_dir, capture_output=True, text=True, check=False)
+        if res.returncode == 0:
+            commit = res.stdout.strip()
+        res_d = subprocess.run(["git", "log", "-1", "--format=%cd", "--date=short"], cwd=tools_dir, capture_output=True, text=True, check=False)
+        if res_d.returncode == 0:
+            commit_date = res_d.stdout.strip()
+    except Exception:
+        pass
+
+    meta = {
+        "sites_count": sites_count,
+        "sites_count_formatted": f"{sites_count:,}",
+        "version": "0.6.5",
+        "commit": commit,
+        "commit_date": commit_date,
+        "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    try:
+        with open(ENGINE_META_FILE, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=4)
+    except Exception:
+        pass
+
+    return meta
+
+def check_for_engine_update(timeout: float = 3.0) -> Optional[bool]:
+    """
+    Quickly checks upstream Git repository for tools/maigret without modifying any files.
+    Returns:
+        True: Update Detected (new commits on origin/main)
+        False: Updated (local repository is up to date)
+        None: Offline or check timed out
+    """
+    tools_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "tools", "maigret"))
+    if not os.path.exists(tools_dir):
+        return None
+    try:
+        local_res = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=tools_dir,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if local_res.returncode != 0 or not local_res.stdout.strip():
+            return None
+        local_head = local_res.stdout.strip()
+
+        remote_res = subprocess.run(
+            ["git", "ls-remote", "origin", "refs/heads/main"],
+            cwd=tools_dir,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False
+        )
+        if remote_res.returncode != 0 or not remote_res.stdout.strip():
+            return None
+
+        remote_head = remote_res.stdout.split()[0].strip()
+        return local_head != remote_head
+    except Exception:
+        return None
 
 class InvestigationJob:
     def __init__(self, job_id: int, username: str, options: Dict[str, Any], initiated_from: str = "terminal"):
@@ -100,6 +195,17 @@ def load_db():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_db()
+
+    # Fast startup update indicator check
+    try:
+        has_update = await asyncio.to_thread(check_for_engine_update, 3.5)
+        if has_update:
+            print("\nUpdate Detected\n")
+        else:
+            print("\nUpdated\n")
+    except Exception:
+        print("\nUpdated\n")
+
     yield
     save_db()
 
@@ -211,7 +317,7 @@ def is_informational_maigret_cmd(tokens: List[str]) -> bool:
         return True
     return False
 
-async def run_direct_cli_command(cmd_args: List[str]):
+async def run_direct_cli_command(cmd_args: List[str], on_complete=None):
     proc = None
     try:
         resolved_cmd = resolve_maigret_cmd(cmd_args)
@@ -229,6 +335,13 @@ async def run_direct_cli_command(cmd_args: List[str]):
             if clean_line:
                 await broadcast_message({"type": "terminal_log", "job_id": None, "line": clean_line})
         await asyncio.to_thread(proc.wait)
+        if on_complete:
+            try:
+                res = on_complete()
+                if asyncio.iscoroutine(res):
+                    await res
+            except Exception as cb_err:
+                print(f"Error in on_complete callback: {cb_err}")
     except Exception as e:
         await broadcast_message({"type": "terminal_log", "job_id": None, "line": f"[!] CLI Error: {repr(e)}"})
     finally:
@@ -351,12 +464,19 @@ async def serve_index():
     # Return index.html from the 'static' folder
     return FileResponse(os.path.join("static", "index.html"))
 
+@app.get("/api/engine/info")
+async def get_engine_info():
+    return get_engine_meta()
+
 @app.get("/api/overview")
 async def get_overview():
+    meta = get_engine_meta()
     return {
         "total_searches": len(jobs_db),
         "active_tasks": sum(1 for j in jobs_db.values() if j.status == "running"),
-        "total_found": sum(j.found_sites for j in jobs_db.values())
+        "total_found": sum(j.found_sites for j in jobs_db.values()),
+        "supported_sites": meta.get("sites_count", 4990),
+        "engine_meta": meta
     }
 
 @app.get("/api/history")
@@ -402,11 +522,13 @@ async def start_gui_search(req: GUIStartRequest):
     if not username:
         raise HTTPException(status_code=400, detail="Username cannot be empty.")
     
+    max_sites = get_engine_meta().get("sites_count", 4990)
     cmd_args = ["maigret", username]
     if req.all_sites:
         cmd_args.append("--all-sites")
     else:
-        cmd_args.extend(["--top-sites", str(req.top_sites)])
+        top_val = min(max(1, req.top_sites or 500), max_sites)
+        cmd_args.extend(["--top-sites", str(top_val)])
     
     if req.tags:
         cleaned_tags = [t.strip() for t in req.tags if t.strip()]
@@ -455,6 +577,7 @@ async def execute_terminal_command(req: CommandRequest):
                 "  maigret --help / -h            Display all native Maigret CLI flags and options\n"
                 "  maigret --version              Display Maigret engine version\n"
                 "  maigret --list-sites           List all supported OSINT platforms\n"
+                "  update                         Check and apply updates to Maigret engine\n"
                 "  cancel                         Halt active search\n"
                 "  investigations / jobs          Display recent dossier investigations\n"
                 "  open <id>                      Navigate GUI to investigation #<id>\n"
@@ -496,6 +619,21 @@ async def execute_terminal_command(req: CommandRequest):
                         pass
         save_db()
         return {"output": f"[*] Cancellation signal sent.\n"}
+
+    if primary == "update":
+        update_script = os.path.join(os.path.dirname(__file__), "updates", "update.py")
+
+        async def on_update_done():
+            meta = get_engine_meta()
+            await broadcast_message({"type": "engine_info_updated", "data": meta})
+            await broadcast_message({
+                "type": "terminal_log",
+                "job_id": None,
+                "line": f"[+] UI Synchronized: Application live updated with {meta.get('sites_count_formatted', '')} supported sites (v{meta.get('version', '')} - {meta.get('commit', '')}).\n"
+            })
+
+        asyncio.create_task(run_direct_cli_command([sys.executable, update_script] + tokens[1:], on_complete=on_update_done))
+        return {"output": ""}
 
     if primary == "maigret":
         if is_informational_maigret_cmd(tokens):

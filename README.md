@@ -243,6 +243,31 @@ Key scan flags supported via GUI and CLI:
 
 ---
 
+## 🔄 Updating the Engine (`updates/update.py`)
+
+Keep the embedded Maigret tool and its database of 4,900+ target platforms synchronized with upstream [soxoj/maigret](https://github.com/soxoj/maigret):
+
+```powershell
+# Run the automated updater from your terminal
+py updates/update.py
+
+# Optional: Check for updates without applying
+py updates/update.py --check-only
+
+# Optional: Force reset local modifications if any conflicts occur
+py updates/update.py --force
+```
+
+*Tip: You can also type `update` directly into the web dashboard's Interactive Terminal Console.*
+
+**What the updater does:**
+1. **Source Synchronization**: Pulls the latest commits from upstream Git (`https://github.com/soxoj/maigret.git`).
+2. **Dependency Refresh**: Re-indexes package dependencies and editable registrations.
+3. **Sites Database Sync**: Refreshes site definitions and parsing signatures (4,900+ online targets).
+4. **Cache Invalidation**: Cleans compiled `__pycache__` artifacts for instant reflection in the dashboard.
+
+---
+
 ## 🛠️ Troubleshooting & Windows Setup
 
 ### 1. `Python was not found` on Windows

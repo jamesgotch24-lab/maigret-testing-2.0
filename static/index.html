@@ -145,7 +145,7 @@
             <img src="/logos/maigret%20logo%20shield.png" alt="Maigret Logo" onerror="this.src='/logos/maigret%20logo.png'">
             <div class="logo-text">
                 <h1>MAIGRET</h1>
-                <span>OSINT SUITE</span>
+                <span id="sidebar-engine-badge">OSINT SUITE</span>
             </div>
         </div>
         <button class="nav-btn active" onclick="switchTab('overview')">◈ Overview</button>
@@ -166,7 +166,7 @@
                 </div>
                 <div class="metric-card">
                     <h3>Sites Supported</h3>
-                    <div class="value">~3000</div>
+                    <div class="value" id="metric-supported-sites">4,490 max</div>
                 </div>
                 <div class="metric-card">
                     <h3>Active Jobs</h3>
@@ -208,8 +208,8 @@
                 <div class="options-grid">
                     <div>
                         <label style="color: var(--accent-gold); font-weight: bold;">Target Range</label>
-                        <label><input type="checkbox" id="opt-allsites" onchange="updateSiteCountText()"> Search ALL Supported Sites (~3000+)</label>
-                        <label>Or Top Sites: <input type="number" id="opt-top" value="500" oninput="updateSiteCountText()"></label>
+                        <label><input type="checkbox" id="opt-allsites" onchange="updateSiteCountText()"><span id="label-allsites-text"> Search ALL Supported Sites</span></label>
+                        <label>Or Top Sites: <input type="number" id="opt-top" value="500" min="1" oninput="updateSiteCountText()"></label>
                         <label>ID Type: 
                             <select id="opt-idtype" class="input-field" style="width: auto; padding: 4px 8px;">
                                 <option value="username">Username (Default)</option>
@@ -352,11 +352,58 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
             });
         });
 
+        let currentEngineMeta = {
+            sites_count: 4990,
+            sites_count_formatted: "4,990",
+            version: "0.6.5",
+            commit: ""
+        };
+
+        function applyEngineMeta(meta) {
+            if (!meta) return;
+            currentEngineMeta = Object.assign({}, currentEngineMeta, meta);
+            const count = currentEngineMeta.sites_count || 4990;
+            const countFmt = currentEngineMeta.sites_count_formatted || count.toLocaleString();
+
+            const metricSites = document.getElementById('metric-supported-sites');
+            if (metricSites) metricSites.innerText = `${countFmt} max`;
+
+            const labelAll = document.getElementById('label-allsites-text');
+            if (labelAll) labelAll.innerText = ` Search ALL Supported Sites (${countFmt} max)`;
+
+            const topInput = document.getElementById('opt-top');
+            if (topInput) topInput.max = count;
+
+            const badge = document.getElementById('sidebar-engine-badge');
+            if (badge) {
+                const commitStr = currentEngineMeta.commit ? ` (${currentEngineMeta.commit})` : '';
+                badge.innerText = `OSINT v${currentEngineMeta.version || '0.6.5'}${commitStr}`;
+            }
+
+            updateSiteCountText();
+        }
+
         function updateSiteCountText() {
             const isAll = document.getElementById('opt-allsites').checked;
-            const top = document.getElementById('opt-top').value;
+            const topInput = document.getElementById('opt-top');
             const label = document.getElementById('site-count-label');
-            label.innerText = isAll ? "Searching all supported sites (~3000+)" : `Searching top ${top || 500} sites`;
+            const maxSites = currentEngineMeta.sites_count || 4990;
+            const maxFmt = currentEngineMeta.sites_count_formatted || maxSites.toLocaleString();
+
+            if (isAll) {
+                topInput.disabled = true;
+                label.innerText = `${maxFmt} max`;
+            } else {
+                topInput.disabled = false;
+                let val = parseInt(topInput.value);
+                if (isNaN(val) || val < 1) {
+                    val = 500;
+                } else if (val > maxSites) {
+                    val = maxSites;
+                    topInput.value = maxSites;
+                }
+                label.innerText = `Searching top ${val.toLocaleString()} sites (${maxFmt} max)`;
+            }
         }
 
         function togglePdfOptions() {
@@ -388,6 +435,8 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
                 } else if (data.type === "job_status") {
                     loadOverviewData();
                     loadHistoryData();
+                } else if (data.type === "engine_info_updated") {
+                    applyEngineMeta(data.data);
                 }
             };
             ws.onclose = function () { setTimeout(connectWebSocket, 2000); };
@@ -436,11 +485,16 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
             document.getElementById('gui-live-output').innerHTML = "";
 
             try {
+                const maxSites = currentEngineMeta.sites_count || 4990;
+                let topSites = parseInt(document.getElementById('opt-top').value || '500');
+                if (isNaN(topSites) || topSites < 1) topSites = 500;
+                if (topSites > maxSites) topSites = maxSites;
+
                 const payload = {
                     username: username,
                     tags: tags,
                     timeout: parseInt(document.getElementById('opt-timeout').value || '15'),
-                    top_sites: parseInt(document.getElementById('opt-top').value || '500'),
+                    top_sites: topSites,
                     all_sites: document.getElementById('opt-allsites').checked,
                     permute: document.getElementById('opt-permute').checked,
                     cloudflare_bypass: document.getElementById('opt-cf-bypass').checked,
@@ -521,6 +575,11 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
             document.getElementById('metric-searches').innerText = data.total_searches;
             document.getElementById('metric-tasks').innerText = data.active_tasks;
             document.getElementById('metric-found').innerText = data.total_found || 0;
+            if (data.engine_meta) {
+                applyEngineMeta(data.engine_meta);
+            } else if (data.supported_sites && document.getElementById('metric-supported-sites')) {
+                document.getElementById('metric-supported-sites').innerText = data.supported_sites.toLocaleString() + " max";
+            }
 
             const histRes = await fetch('/api/history');
             const history = await histRes.json();
@@ -655,6 +714,7 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
 
         window.onload = function () { 
             connectWebSocket(); 
+            fetch('/api/engine/info').then(r => r.json()).then(applyEngineMeta).catch(() => {});
             loadOverviewData(); 
             loadHistoryData(); 
             updateSiteCountText(); 
