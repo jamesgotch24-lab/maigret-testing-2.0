@@ -17,3 +17,7 @@ ENV/
 # IDE files
 .vscode/
 .idea/
+
+# Database backups & temp files
+search_history.json.bak
+search_history.json.tmp

@@ -734,9 +734,9 @@ a:hover {
 
 .themes-modal-body {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-    gap: 20px;
-    padding: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 14px;
+    padding: 18px 20px;
     overflow-y: auto;
     background: var(--bg-main);
 }
@@ -745,28 +745,26 @@ a:hover {
 .theme-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 14px 16px;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     position: relative;
-    overflow: visible;
-    min-height: 410px;
+    height: auto;
 }
 
 .theme-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
     border-color: var(--accent-gold);
 }
 
 .theme-card.active {
     border-color: var(--accent-gold) !important;
-    box-shadow: 0 0 20px var(--accent-gold-dim), 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+    box-shadow: 0 0 16px var(--accent-gold-dim), 0 6px 20px rgba(0, 0, 0, 0.5) !important;
 }
 
 .theme-card-header {
@@ -776,16 +774,16 @@ a:hover {
 }
 
 .theme-card-title {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 800;
     color: var(--text-main);
     margin: 0;
 }
 
 .theme-card-tagline {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: var(--text-dim);
-    margin-top: 2px;
+    margin-top: 1px;
     font-weight: 600;
 }
 
@@ -795,8 +793,8 @@ a:hover {
     color: #000;
     font-size: 0.65rem;
     font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 10px;
+    padding: 2px 7px;
+    border-radius: 6px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
@@ -807,27 +805,27 @@ a:hover {
 
 .theme-swatches {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
 }
 
 .theme-swatch {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
     flex-shrink: 0;
 }
 
 /* Mini Mockup Box */
 .theme-mini-mockup {
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 0.72rem;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.7rem;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     border: 1px solid;
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
@@ -839,45 +837,43 @@ a:hover {
 }
 
 .theme-mockup-btn {
-    padding: 3px 9px;
+    padding: 2px 8px;
     border-radius: 4px;
     font-weight: 700;
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     border: none;
 }
 
 .theme-mockup-badge {
-    padding: 2px 7px;
-    border-radius: 8px;
-    font-size: 0.62rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.6rem;
     font-weight: 700;
 }
 
 .theme-card-desc {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     color: var(--text-dim);
-    line-height: 1.5;
-    margin: 6px 0 14px 0;
+    line-height: 1.38;
+    margin: 0;
     word-break: normal;
     word-wrap: break-word;
     white-space: normal;
-    overflow: visible;
-    flex-grow: 1;
 }
 
 .theme-apply-btn {
     width: 100%;
-    padding: 9px 12px;
-    border-radius: 6px;
+    padding: 6px 10px;
+    border-radius: 5px;
     border: 1px solid;
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
     letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-transform: uppercase;
     text-align: center;
-    margin-top: auto;
+    margin-top: 4px;
 }
 
 /* ==============================================================================

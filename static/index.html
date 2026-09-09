@@ -38,6 +38,635 @@
         <!-- Overview Tab -->
         <div id="overview" class="tab-content active">
             <div class="view-header"><h2>Overview & Operational Metrics</h2></div>
+
+            <!-- Theme-Specific Abstract Visual Stage (Hidden on Default, Unique Design for Each of the 20 Themes) -->
+            <div id="overview-abstract-container" class="overview-abstract-stage">
+                <!-- 1. Cyberpunk 2077 -->
+                <div class="abstract-art-item abstract-art-cyberpunk">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">CYBERPUNK 2077 // NETRUNNER HUD</div>
+                        <div class="abstract-title">High-Voltage Neon Matrix</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>GRID: ONLINE • 60 FPS COMPOSITOR</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <defs>
+                                <linearGradient id="cyber-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#fcee0a" stop-opacity="0.8"/>
+                                    <stop offset="50%" stop-color="#00f0ff" stop-opacity="0.9"/>
+                                    <stop offset="100%" stop-color="#ff0055" stop-opacity="0.8"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Horizon & Grid Lines -->
+                            <g class="anim-cyber-grid">
+                                <line x1="0" y1="100" x2="460" y2="100" stroke="#00f0ff" stroke-width="1.5" stroke-opacity="0.7"/>
+                                <line x1="0" y1="115" x2="460" y2="115" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.5"/>
+                                <line x1="0" y1="128" x2="460" y2="128" stroke="#00f0ff" stroke-width="0.8" stroke-opacity="0.3"/>
+                                <line x1="230" y1="100" x2="230" y2="140" stroke="#fcee0a" stroke-width="1.5" stroke-opacity="0.6"/>
+                                <line x1="230" y1="100" x2="90" y2="140" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.4"/>
+                                <line x1="230" y1="100" x2="370" y2="140" stroke="#00f0ff" stroke-width="1" stroke-opacity="0.4"/>
+                                <line x1="230" y1="100" x2="-20" y2="140" stroke="#00f0ff" stroke-width="0.8" stroke-opacity="0.3"/>
+                                <line x1="230" y1="100" x2="480" y2="140" stroke="#00f0ff" stroke-width="0.8" stroke-opacity="0.3"/>
+                            </g>
+                            <!-- Scanning Laser Beam -->
+                            <line x1="0" y1="50" x2="460" y2="50" class="anim-cyber-beam" stroke="url(#cyber-grad)" stroke-width="2.5" filter="drop-shadow(0 0 8px #fcee0a)"/>
+                            <!-- Circuit Nodes -->
+                            <circle cx="120" cy="40" r="4" fill="#fcee0a" class="anim-cyber-node1"/>
+                            <circle cx="230" cy="30" r="5" fill="#00f0ff" class="anim-cyber-node2"/>
+                            <circle cx="340" cy="55" r="4" fill="#ff0055" class="anim-cyber-node3"/>
+                            <polyline points="120,40 180,40 230,30 290,55 340,55" fill="none" stroke="#fcee0a" stroke-width="1" stroke-dasharray="4 3" stroke-opacity="0.6"/>
+                            <!-- Wave Bars -->
+                            <g class="anim-cyber-bars">
+                                <rect x="390" y="25" width="4" height="35" fill="#00f0ff"/>
+                                <rect x="400" y="15" width="4" height="45" fill="#fcee0a"/>
+                                <rect x="410" y="30" width="4" height="30" fill="#ff0055"/>
+                                <rect x="420" y="10" width="4" height="50" fill="#00f0ff"/>
+                                <rect x="430" y="20" width="4" height="40" fill="#fcee0a"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 2. Midnight Dracula -->
+                <div class="abstract-art-item abstract-art-dracula">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">MIDNIGHT DRACULA // GOTHIC NOIR</div>
+                        <div class="abstract-title">Vampiric Eclipse & Blood Mist</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>RITUAL: ACTIVE • AURA PULSE</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <defs>
+                                <radialGradient id="drac-eclipse" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#14111f"/>
+                                    <stop offset="80%" stop-color="#bd93f9" stop-opacity="0.8"/>
+                                    <stop offset="100%" stop-color="#ff5555" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                            <!-- Floating Mist Rings -->
+                            <circle cx="280" cy="70" r="55" fill="none" stroke="#bd93f9" stroke-width="1.5" stroke-dasharray="8 6" class="anim-drac-ring1"/>
+                            <circle cx="280" cy="70" r="42" fill="none" stroke="#ff5555" stroke-width="1" stroke-dasharray="12 4" class="anim-drac-ring2"/>
+                            <!-- Eclipse Disc -->
+                            <circle cx="280" cy="70" r="32" fill="#0d0b14" stroke="#ff5555" stroke-width="2" class="anim-drac-pulse"/>
+                            <circle cx="280" cy="70" r="28" fill="url(#drac-eclipse)"/>
+                            <!-- Occult Geometric Ray Triangle -->
+                            <polygon points="280,20 235,100 325,100" fill="none" stroke="#bd93f9" stroke-width="1" stroke-opacity="0.4" class="anim-drac-tri"/>
+                            <!-- Drifting Blood Embers -->
+                            <circle cx="180" cy="45" r="2.5" fill="#ff5555" class="anim-drac-particle1"/>
+                            <circle cx="210" cy="95" r="2" fill="#bd93f9" class="anim-drac-particle2"/>
+                            <circle cx="360" cy="40" r="3" fill="#ff5555" class="anim-drac-particle3"/>
+                            <circle cx="380" cy="85" r="1.5" fill="#bd93f9" class="anim-drac-particle4"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 3. Matrix Reloaded -->
+                <div class="abstract-art-item abstract-art-matrix">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">MATRIX RELOADED // PHOSPHOR CRT</div>
+                        <div class="abstract-title">Digital Data-Stream Rain</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>SYS-CARRIER: 0x00FF66 SYNCED</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg matrix-svg">
+                            <!-- Falling Digital Rain Columns -->
+                            <g class="matrix-rain col-1" transform="translate(140, 0)">
+                                <text x="0" y="20">1</text><text x="0" y="40">0</text><text x="0" y="60">X</text><text x="0" y="80">7</text><text x="0" y="100">B</text><text x="0" y="120">0</text><text x="0" y="140">1</text>
+                            </g>
+                            <g class="matrix-rain col-2" transform="translate(190, -30)">
+                                <text x="0" y="20">0</text><text x="0" y="40">A</text><text x="0" y="60">F</text><text x="0" y="80">1</text><text x="0" y="100">9</text><text x="0" y="120">Z</text><text x="0" y="140">0</text>
+                            </g>
+                            <g class="matrix-rain col-3" transform="translate(240, -10)">
+                                <text x="0" y="20">M</text><text x="0" y="40">A</text><text x="0" y="60">I</text><text x="0" y="80">G</text><text x="0" y="100">R</text><text x="0" y="120">E</text><text x="0" y="140">T</text>
+                            </g>
+                            <g class="matrix-rain col-4" transform="translate(290, -45)">
+                                <text x="0" y="20">2</text><text x="0" y="40">0</text><text x="0" y="60">2</text><text x="0" y="80">6</text><text x="0" y="100">C</text><text x="0" y="120">D</text><text x="0" y="140">4</text>
+                            </g>
+                            <g class="matrix-rain col-5" transform="translate(340, -15)">
+                                <text x="0" y="20">8</text><text x="0" y="40">F</text><text x="0" y="60">0</text><text x="0" y="80">3</text><text x="0" y="100">A</text><text x="0" y="120">1</text><text x="0" y="140">E</text>
+                            </g>
+                            <g class="matrix-rain col-6" transform="translate(390, -35)">
+                                <text x="0" y="20">1</text><text x="0" y="40">1</text><text x="0" y="60">0</text><text x="0" y="80">X</text><text x="0" y="100">7</text><text x="0" y="120">9</text><text x="0" y="140">0</text>
+                            </g>
+                            <!-- CRT Scanline Line -->
+                            <line x1="0" y1="0" x2="460" y2="0" class="anim-matrix-scanline" stroke="#00ff66" stroke-width="1.5" stroke-opacity="0.8"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 4. Synthwave 1984 -->
+                <div class="abstract-art-item abstract-art-synthwave">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">SYNTHWAVE 1984 // RETRO OUTRUN</div>
+                        <div class="abstract-title">Sunset Horizon & Wireframe Grid</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>CRUISING SPEED: 120 MPH • STEREO ON</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <defs>
+                                <linearGradient id="synth-sun" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#ffea00"/>
+                                    <stop offset="50%" stop-color="#ff2a85"/>
+                                    <stop offset="100%" stop-color="#800080"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Glowing Outrun Sun -->
+                            <g class="anim-synth-sun">
+                                <circle cx="280" cy="55" r="42" fill="url(#synth-sun)"/>
+                                <rect x="235" y="50" width="90" height="3" fill="#120924"/>
+                                <rect x="235" y="58" width="90" height="4" fill="#120924"/>
+                                <rect x="235" y="68" width="90" height="6" fill="#120924"/>
+                                <rect x="235" y="80" width="90" height="8" fill="#120924"/>
+                            </g>
+                            <!-- Vector Mountains -->
+                            <polyline points="100,85 170,45 220,85 270,55 330,85 390,40 450,85" fill="none" stroke="#ff2a85" stroke-width="1.5" stroke-opacity="0.5"/>
+                            <!-- 3D Perspective Ground Grid -->
+                            <line x1="0" y1="85" x2="460" y2="85" stroke="#05d9e8" stroke-width="2"/>
+                            <g class="anim-synth-grid">
+                                <line x1="0" y1="98" x2="460" y2="98" stroke="#05d9e8" stroke-width="1.2" stroke-opacity="0.8"/>
+                                <line x1="0" y1="114" x2="460" y2="114" stroke="#05d9e8" stroke-width="1.4" stroke-opacity="0.9"/>
+                                <line x1="0" y1="132" x2="460" y2="132" stroke="#ff2a85" stroke-width="1.8"/>
+                                <line x1="280" y1="85" x2="280" y2="140" stroke="#05d9e8" stroke-width="1.2"/>
+                                <line x1="280" y1="85" x2="160" y2="140" stroke="#05d9e8" stroke-width="1.2"/>
+                                <line x1="280" y1="85" x2="400" y2="140" stroke="#05d9e8" stroke-width="1.2"/>
+                                <line x1="280" y1="85" x2="30" y2="140" stroke="#05d9e8" stroke-width="1"/>
+                                <line x1="280" y1="85" x2="520" y2="140" stroke="#05d9e8" stroke-width="1"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 5. Nordic Frost -->
+                <div class="abstract-art-item abstract-art-nordic-frost">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">NORDIC FROST // POLAR MINIMALISM</div>
+                        <div class="abstract-title">Glacial Crystals & Polar Aurora</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>THERMAL STATE: -42°C SUB-ZERO</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Aurora Undulating Wave Ribbons -->
+                            <path d="M50,40 Q150,15 250,50 T450,30" fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity="0.6" class="anim-frost-wave1"/>
+                            <path d="M50,55 Q180,85 300,45 T450,65" fill="none" stroke="#0284c7" stroke-width="2" stroke-opacity="0.4" class="anim-frost-wave2"/>
+                            <!-- Rotating Hexagonal Ice Crystal -->
+                            <g transform="translate(320, 70)" class="anim-frost-crystal">
+                                <polygon points="0,-40 35,-20 35,20 0,40 -35,20 -35,-20" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+                                <polygon points="0,-25 22,-12 22,12 0,25 -22,12 -22,-12" fill="rgba(56, 189, 248, 0.08)" stroke="#f0f9ff" stroke-width="1"/>
+                                <line x1="0" y1="-40" x2="0" y2="40" stroke="#38bdf8" stroke-width="1"/>
+                                <line x1="-35" y1="-20" x2="35" y2="20" stroke="#38bdf8" stroke-width="1"/>
+                                <line x1="-35" y1="20" x2="35" y2="-20" stroke="#38bdf8" stroke-width="1"/>
+                            </g>
+                            <!-- Smaller Drifting Ice Spores -->
+                            <circle cx="180" cy="50" r="3" fill="#f0f9ff" class="anim-frost-spore1"/>
+                            <circle cx="220" cy="90" r="2" fill="#38bdf8" class="anim-frost-spore2"/>
+                            <circle cx="420" cy="55" r="2.5" fill="#f0f9ff" class="anim-frost-spore3"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 6. Tokyo Neon Ghost -->
+                <div class="abstract-art-item abstract-art-tokyo-neon">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">TOKYO NEON GHOST // SHINJUKU</div>
+                        <div class="abstract-title">Rain-Slick Neon Hologram</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>DISTRICT: SHINJUKU SECTOR 04</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Japanese Neon Kanji Glyphs -->
+                            <text x="160" y="80" class="tokyo-kanji k1">電</text>
+                            <text x="210" y="80" class="tokyo-kanji k2">脳</text>
+                            <text x="260" y="80" class="tokyo-kanji k3">夜</text>
+                            <text x="310" y="80" class="tokyo-kanji k4">市</text>
+                            <!-- Hologram Target Ring -->
+                            <circle cx="390" cy="70" r="45" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="10 5" class="anim-tokyo-ring"/>
+                            <circle cx="390" cy="70" r="30" fill="none" stroke="#f472b6" stroke-width="1" class="anim-tokyo-ring-inner"/>
+                            <circle cx="390" cy="70" r="4" fill="#c084fc"/>
+                            <!-- Rain Streak Lasers -->
+                            <line x1="120" y1="10" x2="90" y2="130" stroke="#c084fc" stroke-width="1" stroke-opacity="0.4" stroke-dasharray="8 12" class="anim-tokyo-rain1"/>
+                            <line x1="250" y1="5" x2="220" y2="135" stroke="#f472b6" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="6 14" class="anim-tokyo-rain2"/>
+                            <line x1="360" y1="10" x2="330" y2="130" stroke="#c084fc" stroke-width="1" stroke-opacity="0.4" stroke-dasharray="10 10" class="anim-tokyo-rain3"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 7. Blood Moon Eclipse -->
+                <div class="abstract-art-item abstract-art-blood-moon">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">BLOOD MOON ECLIPSE // CELESTIAL</div>
+                        <div class="abstract-title">Coronal Flares & Obsidian Depths</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>ECLIPSE PHASE: TOTALITY OCCULTED</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Pulsing Solar Coronal Rings -->
+                            <circle cx="300" cy="70" r="60" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-opacity="0.25" class="anim-blood-ring3"/>
+                            <circle cx="300" cy="70" r="48" fill="none" stroke="#ef4444" stroke-width="2" stroke-opacity="0.5" class="anim-blood-ring2"/>
+                            <circle cx="300" cy="70" r="36" fill="none" stroke="#f97316" stroke-width="2.5" class="anim-blood-ring1"/>
+                            <!-- Dark Eclipse Disk -->
+                            <circle cx="300" cy="70" r="30" fill="#0f0607" stroke="#ef4444" stroke-width="2" class="anim-blood-disk"/>
+                            <!-- Radial Flare Rays -->
+                            <g class="anim-blood-rays" transform="translate(300, 70)">
+                                <line x1="0" y1="-45" x2="0" y2="-62" stroke="#ef4444" stroke-width="2"/>
+                                <line x1="32" y1="-32" x2="45" y2="-45" stroke="#f97316" stroke-width="1.5"/>
+                                <line x1="45" y1="0" x2="62" y2="0" stroke="#ef4444" stroke-width="2"/>
+                                <line x1="32" y1="32" x2="45" y2="45" stroke="#f97316" stroke-width="1.5"/>
+                                <line x1="0" y1="45" x2="0" y2="62" stroke="#ef4444" stroke-width="2"/>
+                                <line x1="-32" y1="32" x2="-45" y2="45" stroke="#f97316" stroke-width="1.5"/>
+                                <line x1="-45" y1="0" x2="-62" y2="0" stroke="#ef4444" stroke-width="2"/>
+                                <line x1="-32" y1="-32" x2="-45" y2="-45" stroke="#f97316" stroke-width="1.5"/>
+                            </g>
+                            <!-- Ember Particles -->
+                            <circle cx="180" cy="60" r="2.5" fill="#f97316" class="anim-blood-ember1"/>
+                            <circle cx="220" cy="100" r="1.5" fill="#ef4444" class="anim-blood-ember2"/>
+                            <circle cx="410" cy="40" r="2" fill="#ef4444" class="anim-blood-ember3"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 8. Emerald Syndicate -->
+                <div class="abstract-art-item abstract-art-emerald-syndicate">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">EMERALD SYNDICATE // INTELLIGENCE</div>
+                        <div class="abstract-title">Imperial Jade & Gold Laser Threads</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>CLEARANCE: TOP SECRET SOVEREIGN</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Geometric Jade Crystal Facets -->
+                            <g transform="translate(290, 70)" class="anim-emerald-gem">
+                                <polygon points="0,-48 42,-18 42,28 0,48 -42,28 -42,-18" fill="rgba(16, 185, 129, 0.12)" stroke="#10b981" stroke-width="1.5"/>
+                                <polygon points="0,-32 28,-12 28,18 0,32 -28,18 -28,-12" fill="none" stroke="#fbbf24" stroke-width="1"/>
+                                <line x1="0" y1="-48" x2="0" y2="48" stroke="#10b981" stroke-width="1"/>
+                                <line x1="-42" y1="-18" x2="42" y2="28" stroke="#10b981" stroke-width="0.8"/>
+                                <line x1="-42" y1="28" x2="42" y2="-18" stroke="#10b981" stroke-width="0.8"/>
+                            </g>
+                            <!-- Orbiting Golden Thread Ring -->
+                            <ellipse cx="290" cy="70" rx="75" ry="30" fill="none" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="14 6" class="anim-emerald-orbit"/>
+                            <!-- Lateral Laser Circuit Traces -->
+                            <polyline points="60,70 120,70 150,45 210,45" fill="none" stroke="#10b981" stroke-width="1.2" class="anim-emerald-trace1"/>
+                            <polyline points="370,95 410,95 440,65 470,65" fill="none" stroke="#fbbf24" stroke-width="1.2" class="anim-emerald-trace2"/>
+                            <circle cx="210" cy="45" r="3" fill="#fbbf24"/>
+                            <circle cx="370" cy="95" r="3" fill="#10b981"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 9. Sunset Overdrive -->
+                <div class="abstract-art-item abstract-art-sunset-overdrive">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">SUNSET OVERDRIVE // AMBER HEAT</div>
+                        <div class="abstract-title">Scorched Desert Horizon & Rays</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>THERMAL INDEX: 118°F AMBER BLAZE</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Radiating Sunburst Fan -->
+                            <g transform="translate(300, 100)" class="anim-sunset-sunburst">
+                                <line x1="0" y1="0" x2="-80" y2="-80" stroke="#f97316" stroke-width="1.5" stroke-opacity="0.6"/>
+                                <line x1="0" y1="0" x2="-50" y2="-95" stroke="#fbbf24" stroke-width="1.5" stroke-opacity="0.7"/>
+                                <line x1="0" y1="0" x2="0" y2="-105" stroke="#f97316" stroke-width="2" stroke-opacity="0.8"/>
+                                <line x1="0" y1="0" x2="50" y2="-95" stroke="#fbbf24" stroke-width="1.5" stroke-opacity="0.7"/>
+                                <line x1="0" y1="0" x2="80" y2="-80" stroke="#f97316" stroke-width="1.5" stroke-opacity="0.6"/>
+                                <circle cx="0" cy="0" r="45" fill="rgba(249, 115, 22, 0.2)" stroke="#f97316" stroke-width="2"/>
+                                <circle cx="0" cy="0" r="28" fill="#f97316" class="anim-sunset-core"/>
+                            </g>
+                            <!-- Heatwave Distortion Ribbons -->
+                            <path d="M80,105 Q160,85 240,105 T400,105" fill="none" stroke="#fbbf24" stroke-width="2" stroke-opacity="0.5" class="anim-sunset-wave1"/>
+                            <path d="M80,120 Q180,135 280,120 T440,120" fill="none" stroke="#f97316" stroke-width="2" stroke-opacity="0.4" class="anim-sunset-wave2"/>
+                            <!-- Blazing Dune Horizon -->
+                            <line x1="0" y1="100" x2="460" y2="100" stroke="#ea580c" stroke-width="2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 10. Spec-Ops Tactical -->
+                <div class="abstract-art-item abstract-art-spec-ops">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">SPEC-OPS TACTICAL // RADAR HUD</div>
+                        <div class="abstract-title">360° Military Sonar & Azimuth</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>RADAR: ACTIVE • SWEEP 45 RPM</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Tactical Radar Rings -->
+                            <circle cx="310" cy="70" r="56" fill="none" stroke="#84cc16" stroke-width="1.5" stroke-opacity="0.4"/>
+                            <circle cx="310" cy="70" r="38" fill="none" stroke="#84cc16" stroke-width="1" stroke-opacity="0.5"/>
+                            <circle cx="310" cy="70" r="20" fill="none" stroke="#84cc16" stroke-width="1" stroke-opacity="0.6"/>
+                            <!-- Crosshairs & Azimuth Markers -->
+                            <line x1="245" y1="70" x2="375" y2="70" stroke="#84cc16" stroke-width="1" stroke-opacity="0.6"/>
+                            <line x1="310" y1="5" x2="310" y2="135" stroke="#84cc16" stroke-width="1" stroke-opacity="0.6"/>
+                            <!-- Rotating Radar Sweep Wedge -->
+                            <g class="anim-specops-sweep" transform="translate(310, 70)">
+                                <line x1="0" y1="0" x2="56" y2="0" stroke="#a3e635" stroke-width="2.5"/>
+                                <polygon points="0,0 56,0 52,-18 0,0" fill="rgba(132, 204, 22, 0.25)"/>
+                            </g>
+                            <!-- Detected Target Pings -->
+                            <circle cx="335" cy="45" r="3" fill="#a3e635" class="anim-specops-ping1"/>
+                            <circle cx="280" cy="85" r="3.5" fill="#ef4444" class="anim-specops-ping2"/>
+                            <!-- Compass Coordinates Readout -->
+                            <text x="120" y="55" fill="#84cc16" font-family="monospace" font-size="10" opacity="0.8">AZM 142.8°</text>
+                            <text x="120" y="75" fill="#84cc16" font-family="monospace" font-size="10" opacity="0.8">RNG 4.2 NM</text>
+                            <text x="120" y="95" fill="#84cc16" font-family="monospace" font-size="10" opacity="0.8">IFF: POSITIVE</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 11. Mariana Abyss -->
+                <div class="abstract-art-item abstract-art-mariana-abyss">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">MARIANA ABYSS // OCEANIC TRENCH</div>
+                        <div class="abstract-title">Bioluminescent Light Caustics</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>DEPTH: 10,994M • HADAL ZONE</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Caustic Undulating Wave Rays -->
+                            <path d="M60,35 Q140,75 220,35 T380,35" fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-opacity="0.5" class="anim-abyss-caustic1"/>
+                            <path d="M90,70 Q180,25 270,70 T440,70" fill="none" stroke="#38bdf8" stroke-width="1.8" stroke-opacity="0.4" class="anim-abyss-caustic2"/>
+                            <!-- Pulsing Bioluminescent Jellyfish Bell Rings -->
+                            <g transform="translate(300, 75)" class="anim-abyss-jelly">
+                                <path d="M-30,0 C-30,-25 30,-25 30,0 Z" fill="rgba(6, 182, 212, 0.15)" stroke="#06b6d4" stroke-width="1.5"/>
+                                <path d="M-20,0 C-15,20 -25,35 -20,50" fill="none" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.6"/>
+                                <path d="M-5,0 C0,20 -5,35 0,50" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.7"/>
+                                <path d="M10,0 C15,20 10,35 15,50" fill="none" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.6"/>
+                                <circle cx="0" cy="-10" r="4" fill="#67e8f9"/>
+                            </g>
+                            <!-- Bioluminescent Floating Spores -->
+                            <circle cx="160" cy="50" r="3" fill="#06b6d4" class="anim-abyss-spore1"/>
+                            <circle cx="210" cy="100" r="2" fill="#67e8f9" class="anim-abyss-spore2"/>
+                            <circle cx="390" cy="45" r="2.5" fill="#06b6d4" class="anim-abyss-spore3"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 12. Rose Quartz Royale -->
+                <div class="abstract-art-item abstract-art-rose-royale">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">ROSE QUARTZ ROYALE // LUXURY</div>
+                        <div class="abstract-title">Multifaceted Gem & Rose Gold Filigree</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>STATUS: DIPLOMATIC EMBASSY</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Multifaceted Diamond Geometry -->
+                            <g transform="translate(300, 70)" class="anim-rose-gem">
+                                <polygon points="0,-45 42,-22 28,35 -28,35 -42,-22" fill="rgba(251, 113, 133, 0.12)" stroke="#fb7185" stroke-width="1.5"/>
+                                <polygon points="0,-25 24,-12 16,20 -16,20 -24,-12" fill="none" stroke="#fda4af" stroke-width="1"/>
+                                <line x1="0" y1="-45" x2="0" y2="35" stroke="#fb7185" stroke-width="1"/>
+                                <line x1="-42" y1="-22" x2="42" y2="-22" stroke="#fda4af" stroke-width="1"/>
+                                <line x1="-28" y1="35" x2="28" y2="35" stroke="#fb7185" stroke-width="1"/>
+                            </g>
+                            <!-- Light Refraction Rays -->
+                            <line x1="160" y1="70" x2="240" y2="70" stroke="#fb7185" stroke-width="1.2" stroke-dasharray="6 4" class="anim-rose-ray1"/>
+                            <line x1="360" y1="70" x2="440" y2="70" stroke="#fda4af" stroke-width="1.2" stroke-dasharray="6 4" class="anim-rose-ray2"/>
+                            <circle cx="160" cy="70" r="3" fill="#fb7185"/>
+                            <circle cx="440" cy="70" r="3" fill="#fda4af"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 13. Amethyst Nebula -->
+                <div class="abstract-art-item abstract-art-amethyst-nebula">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">AMETHYST NEBULA // INTERSTELLAR</div>
+                        <div class="abstract-title">Cosmic Spiral Galaxy & Pulsar</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>COSMOS SECTOR: ORION SPUR SYNC</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Rotating Spiral Galaxy Arms -->
+                            <g transform="translate(300, 70)" class="anim-nebula-galaxy">
+                                <ellipse rx="65" ry="24" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="14 6" stroke-opacity="0.8"/>
+                                <ellipse rx="48" ry="18" fill="none" stroke="#c084fc" stroke-width="1.2" stroke-dasharray="10 4" stroke-opacity="0.6"/>
+                                <ellipse rx="28" ry="10" fill="none" stroke="#f3e8ff" stroke-width="1" stroke-opacity="0.8"/>
+                                <circle cx="0" cy="0" r="5" fill="#f3e8ff" class="anim-nebula-pulsar"/>
+                            </g>
+                            <!-- Sweeping Pulsar Laser Beam -->
+                            <g transform="translate(300, 70)" class="anim-nebula-beam">
+                                <line x1="-120" y1="0" x2="120" y2="0" stroke="#c084fc" stroke-width="1" stroke-opacity="0.7"/>
+                            </g>
+                            <!-- Distant Twinkling Stars -->
+                            <circle cx="120" cy="40" r="2" fill="#f3e8ff" class="anim-nebula-star1"/>
+                            <circle cx="170" cy="95" r="1.5" fill="#a855f7" class="anim-nebula-star2"/>
+                            <circle cx="210" cy="30" r="2.5" fill="#c084fc" class="anim-nebula-star3"/>
+                            <circle cx="410" cy="85" r="2" fill="#f3e8ff" class="anim-nebula-star4"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 14. Monochrome Noir -->
+                <div class="abstract-art-item abstract-art-monochrome-noir">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">MONOCHROME NOIR // BRUTALIST</div>
+                        <div class="abstract-title">Optical Moire Kinetic Lattice</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>ZERO COLOR • PURE PITCH & WHITE</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Concentric Brutalist Squares -->
+                            <g transform="translate(300, 70)" class="anim-noir-box1">
+                                <rect x="-45" y="-45" width="90" height="90" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+                            </g>
+                            <g transform="translate(300, 70)" class="anim-noir-box2">
+                                <rect x="-30" y="-30" width="60" height="60" fill="none" stroke="#71717a" stroke-width="1.5"/>
+                            </g>
+                            <g transform="translate(300, 70)" class="anim-noir-box3">
+                                <rect x="-15" y="-15" width="30" height="30" fill="none" stroke="#ffffff" stroke-width="2"/>
+                            </g>
+                            <!-- Shifting Optical Bars -->
+                            <g class="anim-noir-bars">
+                                <line x1="80" y1="30" x2="200" y2="30" stroke="#ffffff" stroke-width="2"/>
+                                <line x1="90" y1="50" x2="210" y2="50" stroke="#71717a" stroke-width="1.5"/>
+                                <line x1="70" y1="70" x2="190" y2="70" stroke="#ffffff" stroke-width="2"/>
+                                <line x1="80" y1="90" x2="200" y2="90" stroke="#71717a" stroke-width="1.5"/>
+                                <line x1="90" y1="110" x2="210" y2="110" stroke="#ffffff" stroke-width="2"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 15. Steampunk Forge -->
+                <div class="abstract-art-item abstract-art-steampunk-forge">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">STEAMPUNK FORGE // CLOCKWORK</div>
+                        <div class="abstract-title">Interlocking Brass Cogs & Heat</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>PRESSURE: 180 PSI • GEARS MESHED</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Interlocking Main Gear (Clockwise) -->
+                            <g transform="translate(265, 70)" class="anim-gear-main">
+                                <circle cx="0" cy="0" r="36" fill="rgba(217, 119, 6, 0.12)" stroke="#d97706" stroke-width="2"/>
+                                <circle cx="0" cy="0" r="14" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+                                <circle cx="0" cy="0" r="4" fill="#d97706"/>
+                                <!-- Gear Teeth -->
+                                <rect x="-4" y="-42" width="8" height="8" fill="#d97706"/>
+                                <rect x="-4" y="34" width="8" height="8" fill="#d97706"/>
+                                <rect x="-42" y="-4" width="8" height="8" fill="#d97706"/>
+                                <rect x="34" y="-4" width="8" height="8" fill="#d97706"/>
+                                <rect x="-30" y="-30" width="8" height="8" fill="#d97706" transform="rotate(45)"/>
+                                <rect x="22" y="22" width="8" height="8" fill="#d97706" transform="rotate(45)"/>
+                            </g>
+                            <!-- Interlocking Sub Gear (Counter-Clockwise) -->
+                            <g transform="translate(335, 70)" class="anim-gear-sub">
+                                <circle cx="0" cy="0" r="26" fill="rgba(245, 158, 11, 0.1)" stroke="#f59e0b" stroke-width="1.8"/>
+                                <circle cx="0" cy="0" r="9" fill="none" stroke="#d97706" stroke-width="1.2"/>
+                                <circle cx="0" cy="0" r="3" fill="#f59e0b"/>
+                                <!-- Teeth -->
+                                <rect x="-3" y="-31" width="6" height="6" fill="#f59e0b"/>
+                                <rect x="-3" y="25" width="6" height="6" fill="#f59e0b"/>
+                                <rect x="-31" y="-3" width="6" height="6" fill="#f59e0b"/>
+                                <rect x="25" y="-3" width="6" height="6" fill="#f59e0b"/>
+                            </g>
+                            <!-- Furnace Sparks -->
+                            <circle cx="150" cy="45" r="2.5" fill="#f59e0b" class="anim-forge-spark1"/>
+                            <circle cx="180" cy="95" r="2" fill="#d97706" class="anim-forge-spark2"/>
+                            <circle cx="410" cy="55" r="3" fill="#f59e0b" class="anim-forge-spark3"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 16. Hyper-Vapor -->
+                <div class="abstract-art-item abstract-art-hyper-vapor">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">HYPER-VAPOR // AESTHETIC 1995</div>
+                        <div class="abstract-title">Pastel Torus & Bubblegum Waves</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>VIBE: NOSTALGIC DRIFT • 44.1 KHZ</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Floating Wireframe Torus Rings -->
+                            <g transform="translate(310, 70)" class="anim-vapor-torus">
+                                <ellipse rx="50" ry="20" fill="none" stroke="#f472b6" stroke-width="1.8" transform="rotate(-15)"/>
+                                <ellipse rx="50" ry="20" fill="none" stroke="#38bdf8" stroke-width="1.8" transform="rotate(45)"/>
+                                <ellipse rx="50" ry="20" fill="none" stroke="#c084fc" stroke-width="1.5" transform="rotate(105)"/>
+                                <circle cx="0" cy="0" r="14" fill="rgba(244, 114, 182, 0.2)" stroke="#f472b6" stroke-width="1.5"/>
+                            </g>
+                            <!-- Pastel Sine Waves -->
+                            <path d="M60,50 Q120,20 180,50 T300,50" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.7" class="anim-vapor-sine1"/>
+                            <path d="M60,90 Q140,120 220,90 T380,90" fill="none" stroke="#f472b6" stroke-width="2" stroke-opacity="0.6" class="anim-vapor-sine2"/>
+                            <!-- Geometric Floaties -->
+                            <polygon points="120,70 135,95 105,95" fill="none" stroke="#f472b6" stroke-width="1.5" class="anim-vapor-tri"/>
+                            <rect x="400" y="35" width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="1.5" class="anim-vapor-sq"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 17. Radioactive Hazard -->
+                <div class="abstract-art-item abstract-art-radioactive-hazard">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">RADIOACTIVE HAZARD // BIOHAZARD</div>
+                        <div class="abstract-title">Trefoil Clover & Isotope Scanner</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>RADIATION: 4.8 R/HR • LEVEL 4 HOT</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Rotating Trefoil / Nuclear Symbol -->
+                            <g transform="translate(300, 70)" class="anim-rad-trefoil">
+                                <circle cx="0" cy="0" r="10" fill="#a3e635"/>
+                                <!-- 3 Blades -->
+                                <path d="M-15,-20 A36,36 0 0,1 15,-20 L0,0 Z" fill="#a3e635" opacity="0.8"/>
+                                <path d="M-15,-20 A36,36 0 0,1 15,-20 L0,0 Z" fill="#a3e635" opacity="0.8" transform="rotate(120)"/>
+                                <path d="M-15,-20 A36,36 0 0,1 15,-20 L0,0 Z" fill="#a3e635" opacity="0.8" transform="rotate(240)"/>
+                                <circle cx="0" cy="0" r="48" fill="none" stroke="#a3e635" stroke-width="2" stroke-dasharray="16 8"/>
+                            </g>
+                            <!-- Revolving Warning Rings -->
+                            <circle cx="300" cy="70" r="62" fill="none" stroke="#a3e635" stroke-width="1" stroke-opacity="0.3" class="anim-rad-pulse"/>
+                            <!-- Lateral Hazard Chevrons -->
+                            <g class="anim-rad-chevrons">
+                                <polyline points="100,55 115,70 100,85" fill="none" stroke="#a3e635" stroke-width="2"/>
+                                <polyline points="120,55 135,70 120,85" fill="none" stroke="#a3e635" stroke-width="2"/>
+                                <polyline points="140,55 155,70 140,85" fill="none" stroke="#a3e635" stroke-width="2"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 18. Imperial Sapphire -->
+                <div class="abstract-art-item abstract-art-imperial-sapphire">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">IMPERIAL SAPPHIRE // SOVEREIGN</div>
+                        <div class="abstract-title">Cobalt Aegis & Royal Filigree</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>SECURITY: CROWN MANDATE ACTIVE</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Sovereign Heraldic Shield -->
+                            <g transform="translate(300, 70)" class="anim-sapphire-shield">
+                                <path d="M-36,-40 L36,-40 L36,10 Q36,45 0,55 Q-36,45 -36,10 Z" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="2"/>
+                                <path d="M-24,-28 L24,-28 L24,5 Q24,30 0,38 Q-24,30 -24,5 Z" fill="none" stroke="#60a5fa" stroke-width="1.2"/>
+                                <circle cx="0" cy="5" r="8" fill="#3b82f6"/>
+                            </g>
+                            <!-- Rotating Golden Aegis Rings -->
+                            <circle cx="300" cy="70" r="62" fill="none" stroke="#3b82f6" stroke-width="1" stroke-dasharray="8 6" class="anim-sapphire-ring1"/>
+                            <circle cx="300" cy="70" r="48" fill="none" stroke="#60a5fa" stroke-width="1" stroke-dasharray="14 4" class="anim-sapphire-ring2"/>
+                            <!-- Energy Laser Beams -->
+                            <line x1="80" y1="70" x2="220" y2="70" stroke="#3b82f6" stroke-width="1.5" class="anim-sapphire-beam1"/>
+                            <line x1="380" y1="70" x2="520" y2="70" stroke="#3b82f6" stroke-width="1.5" class="anim-sapphire-beam2"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 19. Ghost Protocol -->
+                <div class="abstract-art-item abstract-art-ghost-protocol">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">GHOST PROTOCOL // BLACK-OPS</div>
+                        <div class="abstract-title">Phantom Hex-Mesh Cloaking Field</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>SIGNATURE: ZERO • RADAR CLOAKED</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Stealth Wing Silhouette -->
+                            <g transform="translate(300, 70)" class="anim-ghost-wing">
+                                <polygon points="0,-35 45,25 20,25 0,15 -20,25 -45,25" fill="rgba(203, 213, 225, 0.15)" stroke="#cbd5e1" stroke-width="1.8"/>
+                                <line x1="0" y1="-35" x2="0" y2="15" stroke="#94a3b8" stroke-width="1"/>
+                            </g>
+                            <!-- Scanning Hex-Grid Cloak Wave -->
+                            <g class="anim-ghost-hex" stroke="#cbd5e1" stroke-width="1" stroke-opacity="0.3" fill="none">
+                                <polygon points="160,50 170,45 180,50 180,60 170,65 160,60"/>
+                                <polygon points="180,65 190,60 200,65 200,75 190,80 180,75"/>
+                                <polygon points="200,50 210,45 220,50 220,60 210,65 200,60"/>
+                                <polygon points="380,50 390,45 400,50 400,60 390,65 380,60"/>
+                                <polygon points="400,65 410,60 420,65 420,75 410,80 400,75"/>
+                            </g>
+                            <!-- Horizontal Tracking Sweep Line -->
+                            <line x1="80" y1="20" x2="80" y2="120" stroke="#cbd5e1" stroke-width="1.5" stroke-opacity="0.6" class="anim-ghost-line"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 20. Laser Red Alert -->
+                <div class="abstract-art-item abstract-art-laser-alert">
+                    <div class="abstract-info">
+                        <div class="abstract-badge">LASER RED ALERT // DEFCON-1</div>
+                        <div class="abstract-title">Ruby Tripwire & Breach Grid</div>
+                        <div class="abstract-status"><span class="abstract-status-dot"></span>SECURITY BREACH: MAXIMUM ALARM</div>
+                    </div>
+                    <div class="abstract-visual">
+                        <svg viewBox="0 0 460 140" class="abstract-svg">
+                            <!-- Criss-Crossing Pulsating Ruby Laser Tripwires -->
+                            <line x1="40" y1="20" x2="420" y2="120" stroke="#ff1a40" stroke-width="2" class="anim-laser-beam1"/>
+                            <line x1="40" y1="120" x2="420" y2="20" stroke="#ff1a40" stroke-width="2" class="anim-laser-beam2"/>
+                            <line x1="20" y1="70" x2="440" y2="70" stroke="#ff1a40" stroke-width="1.5" class="anim-laser-beam3"/>
+                            <!-- Intersecting Laser Sensor Node -->
+                            <g transform="translate(230, 70)" class="anim-laser-target">
+                                <circle cx="0" cy="0" r="32" fill="none" stroke="#ff1a40" stroke-width="1.8" stroke-dasharray="10 6"/>
+                                <circle cx="0" cy="0" r="18" fill="rgba(255, 26, 64, 0.2)" stroke="#ff1a40" stroke-width="1.5"/>
+                                <circle cx="0" cy="0" r="5" fill="#ff1a40"/>
+                                <line x1="-40" y1="0" x2="40" y2="0" stroke="#ff1a40" stroke-width="1"/>
+                                <line x1="0" y1="-40" x2="0" y2="40" stroke="#ff1a40" stroke-width="1"/>
+                            </g>
+                            <!-- Alert Chevrons -->
+                            <g class="anim-laser-chevrons">
+                                <polygon points="370,45 385,70 370,95" fill="none" stroke="#ff1a40" stroke-width="2"/>
+                                <polygon points="390,45 405,70 390,95" fill="none" stroke="#ff1a40" stroke-width="2"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
             <div class="metrics-grid">
                 <div class="metric-card">
                     <h3>Total Investigations</h3>

@@ -15,6 +15,8 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 DB_FILE = "search_history.json"
+DB_BAK_FILE = "search_history.json.bak"
+DB_TMP_FILE = "search_history.json.tmp"
 ENGINE_META_FILE = "engine_meta.json"
 
 def get_engine_meta() -> Dict[str, Any]:
@@ -174,19 +176,49 @@ active_websockets: List[WebSocket] = []
 def save_db():
     try:
         data = {str(k): v.serialize_full() for k, v in jobs_db.items()}
-        with open(DB_FILE, "w", encoding="utf-8") as f:
+        # Write atomically using a temporary file with flush and fsync
+        with open(DB_TMP_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(DB_TMP_FILE, DB_FILE)
+        # Keep an automatic backup copy
+        try:
+            shutil.copy2(DB_FILE, DB_BAK_FILE)
+        except Exception:
+            pass
     except Exception as e:
         print(f"Error saving DB: {e}")
 
 def load_db():
     global job_id_counter
+    loaded_data = None
+
+    # 1. Primary file load
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            needs_save = False
-            for k, v in data.items():
+                content = f.read().strip()
+                if content:
+                    loaded_data = json.loads(content)
+        except Exception as e:
+            print(f"Warning: Error loading {DB_FILE}: {e}")
+
+    # 2. Fallback to backup file only if primary was completely missing or failed to parse (is None)
+    if loaded_data is None and os.path.exists(DB_BAK_FILE):
+        try:
+            with open(DB_BAK_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    loaded_data = json.loads(content)
+                    print(f"Restored search history from {DB_BAK_FILE}")
+        except Exception as e:
+            print(f"Warning: Error loading {DB_BAK_FILE}: {e}")
+
+    needs_save = False
+    if loaded_data and isinstance(loaded_data, dict):
+        for k, v in loaded_data.items():
+            try:
                 job = InvestigationJob.deserialize(v)
                 # Auto-heal found_sites if 0 but logs indicate positive returned accounts
                 if job.found_sites == 0 and job.logs:
@@ -201,14 +233,77 @@ def load_db():
                     if c > 0:
                         job.found_sites = c
                         needs_save = True
+
                 jobs_db[int(k)] = job
                 if int(k) >= job_id_counter:
                     job_id_counter = int(k) + 1
-            if needs_save:
-                save_db()
-        except Exception as e:
-            print(f"Error loading DB: {e}")
-    cleanup_orphaned_reports()
+            except Exception as deser_err:
+                print(f"Error deserializing job #{k}: {deser_err}")
+
+    # 3. Auto-discover and resurrect any investigations present in reports/ folder that are not in jobs_db
+    # This guarantees that existing reports on disk are NEVER lost on restart or rerun!
+    if os.path.exists("reports"):
+        for item in os.listdir("reports"):
+            if item.startswith("job_"):
+                jid_str = item[4:]
+                if jid_str.isdigit():
+                    jid = int(jid_str)
+                    job_dir = os.path.join("reports", item)
+                    if not os.path.isdir(job_dir):
+                        continue
+
+                    if jid not in jobs_db:
+                        uname = "target"
+                        detected_reports = set()
+                        for fname in os.listdir(job_dir):
+                            fl = fname.lower()
+                            if fl.startswith("report_"):
+                                rest = fl[7:]
+                                base_part = rest.split('.')[0]
+                                for suffix in ["_internal", "_graph", "_ndjson"]:
+                                    if base_part.endswith(suffix):
+                                        base_part = base_part[:-len(suffix)]
+                                if base_part:
+                                    uname = base_part
+
+                                if fl.endswith(".html"):
+                                    if "_internal" in fl:
+                                        detected_reports.add("internal_html")
+                                    elif "_graph" in fl:
+                                        detected_reports.add("graph")
+                                    else:
+                                        detected_reports.add("html")
+                                elif fl.endswith(".pdf"):
+                                    detected_reports.add("pdf")
+                                elif fl.endswith(".json"):
+                                    detected_reports.add("json")
+                                elif fl.endswith(".csv"):
+                                    detected_reports.add("csv")
+                                elif fl.endswith(".txt"):
+                                    detected_reports.add("txt")
+                                elif fl.endswith(".md"):
+                                    detected_reports.add("md")
+                                elif fl.endswith(".xmind"):
+                                    detected_reports.add("xmind")
+
+                        created_dt = datetime.datetime.fromtimestamp(os.path.getmtime(job_dir)).strftime("%Y-%m-%d %H:%M:%S")
+                        resurrected_job = InvestigationJob(jid, uname, {}, "restored")
+                        resurrected_job.status = "completed"
+                        resurrected_job.created_at = created_dt
+                        resurrected_job.completed_at = created_dt
+                        resurrected_job.reports_generated = sorted(list(detected_reports))
+                        resurrected_job.logs = [f"[*] Investigation #{jid} for '{uname}' preserved from local reports archive."]
+                        jobs_db[jid] = resurrected_job
+                        needs_save = True
+
+                    if jid >= job_id_counter:
+                        job_id_counter = jid + 1
+
+    if needs_save:
+        save_db()
+
+# Load DB immediately on module import
+load_db()
 
 def force_remove_path(target_path: str):
     """Force remove file or directory even if locked with read-only or OneDrive attributes on Windows."""
@@ -249,18 +344,6 @@ def force_remove_path(target_path: str):
             shutil.rmtree(target_path, ignore_errors=True)
         except Exception:
             pass
-
-def cleanup_orphaned_reports():
-    """Remove any reports/job_<id> folders that no longer exist in search_history.json."""
-    if not os.path.exists("reports"):
-        return
-    for item in os.listdir("reports"):
-        if item.startswith("job_"):
-            jid_str = item[4:]
-            if jid_str.isdigit() and int(jid_str) not in jobs_db:
-                folder = os.path.join("reports", item)
-                if os.path.isdir(folder):
-                    force_remove_path(folder)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -730,13 +813,15 @@ def remove_investigation_and_reports(job_id: int) -> bool:
                         force_remove_path(fpath)
 
         del jobs_db[job_id]
-        save_db()
 
     # 2. Recursively delete the associated reports folder (reports/job_<job_id>)
     job_folder = os.path.join("reports", f"job_{job_id}")
     if os.path.exists(job_folder):
         found = True
         force_remove_path(job_folder)
+
+    if found:
+        save_db()
 
     return found
 
@@ -952,4 +1037,5 @@ async def websocket_terminal_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
