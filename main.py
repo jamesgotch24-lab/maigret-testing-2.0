@@ -443,6 +443,8 @@ class GUIStartRequest(BaseModel):
     all_sites: Optional[bool] = False
     permute: Optional[bool] = False
     cloudflare_bypass: Optional[bool] = False
+    recursion: Optional[bool] = True
+    progressbar: Optional[bool] = False
     id_type: Optional[str] = "username"
     print_mode: Optional[str] = "long"
     report_html: Optional[bool] = True
@@ -564,7 +566,9 @@ async def start_gui_search(req: GUIStartRequest):
     if req.report_json: cmd_args.extend(["--json", "simple"])
     if req.report_csv: cmd_args.append("--csv")
     if req.report_txt: cmd_args.append("--txt")
-    if "--no-progressbar" not in cmd_args:
+    if not req.recursion:
+        cmd_args.append("--no-recursion")
+    if not req.progressbar and "--no-progressbar" not in cmd_args:
         cmd_args.append("--no-progressbar")
 
     global job_id_counter

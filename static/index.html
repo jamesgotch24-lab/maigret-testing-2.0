@@ -231,6 +231,8 @@
                         <label style="color: var(--accent-gold); font-weight: bold;">Filters & Modifiers</label>
                         <label><input type="checkbox" id="opt-permute"> Permute Username Variants</label>
                         <label><input type="checkbox" id="opt-cf-bypass"> Cloudflare Bypass</label>
+                        <label><input type="checkbox" id="opt-recursion" checked> Recursive Search</label>
+                        <label><input type="checkbox" id="opt-progressbar"> Progress Bar</label>
                         <label>Timeout (s): <input type="number" id="opt-timeout" value="15"></label>
                         <label>Tags: <input type="text" id="opt-tags" class="input-field" style="width: 140px; padding: 4px 8px;" placeholder="e.g. photo,dating"></label>
                     </div>
@@ -498,6 +500,8 @@ Type 'maigret --help' for all CLI flags, or 'help' for console utilities.
                     all_sites: document.getElementById('opt-allsites').checked,
                     permute: document.getElementById('opt-permute').checked,
                     cloudflare_bypass: document.getElementById('opt-cf-bypass').checked,
+                    recursion: document.getElementById('opt-recursion').checked,
+                    progressbar: document.getElementById('opt-progressbar').checked,
                     id_type: document.getElementById('opt-idtype').value,
                     report_html: document.getElementById('rep-html').checked,
                     report_pdf: document.getElementById('rep-pdf').checked,

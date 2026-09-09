@@ -1,0 +1,13 @@
+I'm going to give you a quick rundown of how this application should function. 
+I imported a tool called maigret which is a username searcher. Across the internet and thousands of sites, it searches for usernames and returns results.
+When using the start search tab, and when the user clicks "start investigation" the program executes a maigret command of whatever the user enters and whatever options the user selects.
+On default (meaning if ONLY a username is typed in, all it should do is "maigret <username>"). If any options were selected, they should be added to the command. So lets say I put in a username and select HTML. The maigret command that runs should only be "maigret <username --html".
+If I type in a username, select all sites, and select HTML, the maigret command should only be "maigret <username> -a --html".
+All options should on default be off and not included in the maigret command unless the user checks the box. If the user checks the box and then unchecks the box, then that option should be unselected.
+The maigret command that is ran when the user clicks "start investigation" should ONLY contain what the user specifies. Nothing else.
+In the start search tab, there is a terminal window that is synced with the terminal tab. Unsync these, and expand the start search terminal window to give it more room.
+In the start seearch tab, after a user starts a search, in the terminal view (live output) it should show the maigret command being ran. 
+In the terminal tab, if the user uses the terminal to execute any maigret commands the code execution code sequence should be visible there and only there.
+The maigret tool has already been built and it works as intended. Do not reinvent the wheel and re-code how the maigret tool works. All I need you to do is to make sure the tool is usable via the applcation in its respective tabs for ease of usability, and userfriendlyness.
+Also worth noting, in the static folder, there is a styles.css file, and script.js file, and index.html file. Feel free to utilize each of those files for their respective purposes and place the correct code in each of those files.
+After all of that has been done, make sure the application is fully functional, usable, userfriendly, and free of any errors.
