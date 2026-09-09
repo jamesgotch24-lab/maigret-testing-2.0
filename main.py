@@ -3,6 +3,7 @@ import sys
 import re
 import json
 import shlex
+import shutil
 import asyncio
 import subprocess
 import datetime
@@ -184,11 +185,27 @@ def load_db():
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            needs_save = False
             for k, v in data.items():
                 job = InvestigationJob.deserialize(v)
+                # Auto-heal found_sites if 0 but logs indicate positive returned accounts
+                if job.found_sites == 0 and job.logs:
+                    c = 0
+                    for line in job.logs:
+                        m = re.search(r'returned\s+(\d+)\s+accounts', line, re.IGNORECASE)
+                        if m:
+                            c = int(m.group(1))
+                            break
+                        if ("[+] " in line or "[++] " in line or "[?] " in line) and "http" in line and "MAIGRET" not in line and "Using sites" not in line and "Donate" not in line:
+                            c += 1
+                    if c > 0:
+                        job.found_sites = c
+                        needs_save = True
                 jobs_db[int(k)] = job
                 if int(k) >= job_id_counter:
                     job_id_counter = int(k) + 1
+            if needs_save:
+                save_db()
         except Exception as e:
             print(f"Error loading DB: {e}")
 
@@ -200,11 +217,11 @@ async def lifespan(app: FastAPI):
     try:
         has_update = await asyncio.to_thread(check_for_engine_update, 3.5)
         if has_update:
-            print("\nUpdate Detected\n")
+            print("\nUpdate detected\n")
         else:
-            print("\nUpdated\n")
+            print("\nUp to date\n")
     except Exception:
-        print("\nUpdated\n")
+        print("\nUp to date\n")
 
     yield
     save_db()
@@ -335,7 +352,7 @@ async def run_direct_cli_command(cmd_args: List[str], on_complete=None):
                 break
             clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\r\n')
             if clean_line:
-                await broadcast_message({"type": "terminal_log", "job_id": None, "line": clean_line})
+                await broadcast_message({"type": "terminal_log", "job_id": None, "source": "terminal", "line": clean_line})
         await asyncio.to_thread(proc.wait)
         if on_complete:
             try:
@@ -345,7 +362,7 @@ async def run_direct_cli_command(cmd_args: List[str], on_complete=None):
             except Exception as cb_err:
                 print(f"Error in on_complete callback: {cb_err}")
     except Exception as e:
-        await broadcast_message({"type": "terminal_log", "job_id": None, "line": f"[!] CLI Error: {repr(e)}"})
+        await broadcast_message({"type": "terminal_log", "job_id": None, "source": "terminal", "line": f"[!] CLI Error: {repr(e)}"})
     finally:
         if proc and proc.stdout:
             try:
@@ -361,13 +378,11 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
     # Isolated unique directory per investigation job
     job_folder = os.path.join("reports", f"job_{job.id}")
     os.makedirs(job_folder, exist_ok=True)
+    start_timestamp = datetime.datetime.now().timestamp()
     
-    if "--folder" not in cmd_args and "--folderoutput" not in cmd_args:
-        cmd_args.extend(["--folderoutput", job_folder])
-        
-    log_header = f"[*] Engine Executing: {' '.join(cmd_args)}"
+    log_header = f"$ {' '.join(cmd_args)}"
     job.logs.append(log_header)
-    await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": log_header})
+    await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": log_header})
 
     try:
         resolved_cmd = resolve_maigret_cmd(cmd_args)
@@ -388,42 +403,153 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
                 job.status = "cancelled"
                 cancel_msg = f"\n[!] Investigation #{job.id} halted by operator."
                 job.logs.append(cancel_msg)
-                await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": cancel_msg})
+                await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": cancel_msg})
                 break
 
             line_bytes = await asyncio.to_thread(job.process.stdout.readline)
             if not line_bytes:
                 break
             
-            clean_line = ANSI_ESCAPE.sub('', line_bytes.decode('utf-8', errors='replace')).rstrip('\r\n')
+            raw_decoded = line_bytes.decode('utf-8', errors='replace').rstrip('\r\n')
+            clean_line = ANSI_ESCAPE.sub('', raw_decoded)
             if clean_line:
-                job.logs.append(clean_line)
-                if (("FOUND" in clean_line and "NOT FOUND" not in clean_line and "Starting" not in clean_line)
-                    or (clean_line.startswith("[+] ") and "http" in clean_line and "MAIGRET" not in clean_line)):
-                    job.found_sites += 1
-                await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": clean_line})
+                # Handle progress bar carriage returns mixed with match notifications
+                # e.g. "\rSearching | ... \r\r[+] Twitter: https://..."
+                segments = [s.strip() for s in clean_line.split('\r') if s.strip()]
+                
+                # Check for "Search by username <user> returned <N> accounts."
+                m_sum = re.search(r'returned\s+(\d+)\s+accounts', clean_line, re.IGNORECASE)
+                if m_sum:
+                    job.found_sites = int(m_sum.group(1))
+
+                has_match = False
+                for seg in segments:
+                    is_match = (
+                        (seg.startswith("[+] ") or seg.startswith("[++] ") or seg.startswith("[?] "))
+                        and "http" in seg
+                        and "MAIGRET" not in seg
+                        and "Using sites" not in seg
+                        and "Donate" not in seg
+                    ) or ("FOUND" in seg and "NOT FOUND" not in seg and "Starting" not in seg)
+
+                    if is_match:
+                        has_match = True
+                        if not m_sum:
+                            job.found_sites += 1
+                        job.logs.append(seg)
+                        await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": seg})
+                
+                # If no match in this line, keep the latest output / status update
+                if not has_match:
+                    latest = segments[-1] if segments else clean_line
+                    job.logs.append(latest)
+                    await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": latest})
 
         await asyncio.to_thread(job.process.wait)
         if job.status != "cancelled":
             job.status = "completed"
             
         job.completed_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Re-verify and reconcile found_sites against logs and report summary
+        count_from_summary = None
+        count_from_matches = 0
+        for l in job.logs:
+            m = re.search(r'returned\s+(\d+)\s+accounts', l, re.IGNORECASE)
+            if m:
+                count_from_summary = int(m.group(1))
+            elif (l.startswith("[+] ") or l.startswith("[++] ") or l.startswith("[?] ")) and "http" in l and "MAIGRET" not in l and "Using sites" not in l:
+                count_from_matches += 1
+
+        if count_from_summary is not None:
+            job.found_sites = count_from_summary
+        elif count_from_matches > job.found_sites:
+            job.found_sites = count_from_matches
         
+        # Discover and move generated reports from root reports/ into job_folder
+        safe_uname = job.username.lower().replace('/', '_')
+        if os.path.exists("reports"):
+            for fname in os.listdir("reports"):
+                fpath = os.path.join("reports", fname)
+                if os.path.isfile(fpath) and fname.lower().startswith(f"report_{safe_uname}"):
+                    try:
+                        mtime = os.path.getmtime(fpath)
+                        if mtime >= start_timestamp - 5:
+                            dst = os.path.join(job_folder, fname)
+                            shutil.copy2(fpath, dst)
+                            try:
+                                os.remove(fpath)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+
+        # Create aliasing in job_folder so all standard format requests resolve without 404
         if os.path.exists(job_folder):
             for fname in os.listdir(job_folder):
-                ext = fname.split(".")[-1].lower()
-                if ext in ["html", "pdf", "json", "csv", "txt", "xmind", "md"]:
-                    if ext not in job.reports_generated:
-                        job.reports_generated.append(ext)
+                fl = fname.lower()
+                # HTML aliasing: report_user_plain.html -> report_user.html
+                if "_plain.html" in fl:
+                    alias = fname.replace("_plain.html", ".html")
+                    alias_p = os.path.join(job_folder, alias)
+                    if not os.path.exists(alias_p):
+                        try:
+                            shutil.copy2(os.path.join(job_folder, fname), alias_p)
+                        except Exception:
+                            pass
+                # JSON aliasing: report_user_simple.json / _ndjson.json -> report_user.json
+                if "_simple.json" in fl:
+                    alias = fname.replace("_simple.json", ".json")
+                    alias_p = os.path.join(job_folder, alias)
+                    if not os.path.exists(alias_p):
+                        try:
+                            shutil.copy2(os.path.join(job_folder, fname), alias_p)
+                        except Exception:
+                            pass
+                elif "_ndjson.json" in fl:
+                    alias = fname.replace("_ndjson.json", ".json")
+                    alias_p = os.path.join(job_folder, alias)
+                    if not os.path.exists(alias_p):
+                        try:
+                            shutil.copy2(os.path.join(job_folder, fname), alias_p)
+                        except Exception:
+                            pass
 
         if job.options.get("pdf_style") == "internal" or job.options.get("internal_format"):
             generate_internal_dossier(job.username, job_folder)
-            if "internal_html" not in job.reports_generated:
-                job.reports_generated.append("internal_html")
+
+        # Index all reports present in job_folder into job.reports_generated
+        detected_types = set()
+        if os.path.exists(job_folder):
+            for fname in os.listdir(job_folder):
+                fl = fname.lower()
+                if not fl.startswith(f"report_{safe_uname}"):
+                    continue
+                if fl.endswith(".html"):
+                    if "_internal" in fl:
+                        detected_types.add("internal_html")
+                    elif "_graph" in fl:
+                        detected_types.add("graph")
+                    else:
+                        detected_types.add("html")
+                elif fl.endswith(".pdf"):
+                    detected_types.add("pdf")
+                elif fl.endswith(".json"):
+                    detected_types.add("json")
+                elif fl.endswith(".csv"):
+                    detected_types.add("csv")
+                elif fl.endswith(".txt"):
+                    detected_types.add("txt")
+                elif fl.endswith(".md"):
+                    detected_types.add("md")
+                elif fl.endswith(".xmind"):
+                    detected_types.add("xmind")
+
+        job.reports_generated = sorted(list(detected_types))
 
         completion_msg = f"\n[✓] Job #{job.id} concluded. {job.found_sites} returned accounts verified."
         job.logs.append(completion_msg)
-        await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": completion_msg})
+        await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": completion_msg})
         save_db()
         await broadcast_message({"type": "job_status", "job": job.to_dict()})
 
@@ -432,27 +558,35 @@ async def run_maigret_subprocess(job: InvestigationJob, cmd_args: List[str]):
         err_msg = f"[!] Core Execution Error: {repr(e)}"
         job.logs.append(err_msg)
         save_db()
-        await broadcast_message({"type": "terminal_log", "job_id": job.id, "line": err_msg})
+        await broadcast_message({"type": "terminal_log", "job_id": job.id, "source": job.initiated_from, "line": err_msg})
         await broadcast_message({"type": "job_status", "job": job.to_dict()})
 
 class GUIStartRequest(BaseModel):
     username: str
-    tags: Optional[List[str]] = []
-    timeout: Optional[int] = 15
-    top_sites: Optional[int] = 500
+    tokens: Optional[List[str]] = None
     all_sites: Optional[bool] = False
+    use_top: Optional[bool] = False
+    top_sites: Optional[int] = None
+    use_idtype: Optional[bool] = False
+    id_type: Optional[str] = "username"
     permute: Optional[bool] = False
     cloudflare_bypass: Optional[bool] = False
-    recursion: Optional[bool] = True
-    progressbar: Optional[bool] = False
-    id_type: Optional[str] = "username"
-    print_mode: Optional[str] = "long"
-    report_html: Optional[bool] = True
-    report_pdf: Optional[bool] = True
+    no_recursion: Optional[bool] = False
+    no_progressbar: Optional[bool] = False
+    use_timeout: Optional[bool] = False
+    timeout: Optional[int] = None
+    use_tags: Optional[bool] = False
+    tags: Optional[List[str]] = []
+    report_html: Optional[bool] = False
+    report_pdf: Optional[bool] = False
     pdf_style: Optional[str] = "default"
     report_json: Optional[bool] = False
     report_csv: Optional[bool] = False
     report_txt: Optional[bool] = False
+    report_md: Optional[bool] = False
+    report_graph: Optional[bool] = False
+    report_xmind: Optional[bool] = False
+    print_mode: Optional[str] = "long"
 
 class CommandRequest(BaseModel):
     command: str
@@ -542,34 +676,54 @@ async def start_gui_search(req: GUIStartRequest):
     if not username:
         raise HTTPException(status_code=400, detail="Username cannot be empty.")
     
-    max_sites = get_engine_meta().get("sites_count", 4990)
-    cmd_args = ["maigret", username]
-    if req.all_sites:
-        cmd_args.append("--all-sites")
+    # If exact tokens were supplied from frontend command builder, use them
+    if req.tokens and len(req.tokens) >= 2 and req.tokens[0] == "maigret" and req.tokens[1] == username:
+        cmd_args = list(req.tokens)
     else:
-        top_val = min(max(1, req.top_sites or 500), max_sites)
-        cmd_args.extend(["--top-sites", str(top_val)])
-    
-    if req.tags:
-        cleaned_tags = [t.strip() for t in req.tags if t.strip()]
-        if cleaned_tags:
-            cmd_args.extend(["--tags", ",".join(cleaned_tags)])
-    
-    cmd_args.extend(["--timeout", str(req.timeout)])
-    if req.id_type and req.id_type != "username":
-        cmd_args.extend(["--id-type", req.id_type])
-    
-    if req.permute: cmd_args.append("--permute")
-    if req.cloudflare_bypass: cmd_args.append("--cloudflare-bypass")
-    if req.report_html: cmd_args.append("--html")
-    if req.report_pdf: cmd_args.append("--pdf")
-    if req.report_json: cmd_args.extend(["--json", "simple"])
-    if req.report_csv: cmd_args.append("--csv")
-    if req.report_txt: cmd_args.append("--txt")
-    if not req.recursion:
-        cmd_args.append("--no-recursion")
-    if not req.progressbar and "--no-progressbar" not in cmd_args:
-        cmd_args.append("--no-progressbar")
+        # Construct strictly from user-specified options only
+        cmd_args = ["maigret", username]
+        if req.all_sites:
+            cmd_args.append("-a")
+        elif req.use_top and req.top_sites:
+            max_sites = get_engine_meta().get("sites_count", 4990)
+            cmd_args.extend(["--top-sites", str(min(req.top_sites, max_sites))])
+        
+        if req.use_idtype and req.id_type and req.id_type != "username":
+            cmd_args.extend(["--id-type", req.id_type])
+        
+        if req.permute:
+            cmd_args.append("--permute")
+        if req.cloudflare_bypass:
+            cmd_args.append("--cloudflare-bypass")
+        if req.no_recursion:
+            cmd_args.append("--no-recursion")
+        if req.no_progressbar:
+            cmd_args.append("--no-progressbar")
+        
+        if req.use_timeout and req.timeout:
+            cmd_args.extend(["--timeout", str(req.timeout)])
+        
+        if req.use_tags and req.tags:
+            cleaned_tags = [t.strip() for t in req.tags if t.strip()]
+            if cleaned_tags:
+                cmd_args.extend(["--tags", ",".join(cleaned_tags)])
+        
+        if req.report_html:
+            cmd_args.append("--html")
+        if req.report_pdf:
+            cmd_args.append("--pdf")
+        if req.report_json:
+            cmd_args.extend(["--json", "simple"])
+        if req.report_csv:
+            cmd_args.append("--csv")
+        if req.report_txt:
+            cmd_args.append("--txt")
+        if req.report_md:
+            cmd_args.append("--md")
+        if req.report_graph:
+            cmd_args.append("--graph")
+        if req.report_xmind:
+            cmd_args.append("--xmind")
 
     global job_id_counter
     job_id_counter += 1
@@ -675,15 +829,8 @@ async def execute_terminal_command(req: CommandRequest):
         jobs_db[new_job.id] = new_job
         save_db()
 
-        # If user did not specify any report flag, default to generating HTML report
-        cmd_with_reports = list(tokens)
-        has_report_flag = any(f in cmd_with_reports for f in ["--html", "--pdf", "--json", "--csv", "--txt", "-a"])
-        if not has_report_flag:
-            cmd_with_reports.append("--html")
-        if "--no-progressbar" not in cmd_with_reports:
-            cmd_with_reports.append("--no-progressbar")
-
-        asyncio.create_task(run_maigret_subprocess(new_job, cmd_with_reports))
+        # Execute exactly what user typed
+        asyncio.create_task(run_maigret_subprocess(new_job, list(tokens)))
         return {"output": f"[+] Investigation #{new_job.id} queued for target '{target_user}'. Engine starting...\n", "job_id": new_job.id}
 
     return {"output": f"Unknown command: '{primary}'. Type 'help' or 'maigret --help'.\n"}
