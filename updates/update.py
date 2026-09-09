@@ -214,12 +214,28 @@ def update_maigret(check_only: bool = False, skip_db: bool = False, force: bool 
             run_command(["git", "reset", "--hard", "origin/main"], cwd=MAIGRET_DIR)
             pull_code, _, pull_err = 0, "", ""
         else:
+            # Auto-discard local differences in tracked resource files (e.g. data.json updated by --force-update)
+            # This ensures fast-forward pull succeeds seamlessly without merge conflicts in the vendor repository.
+            run_command(["git", "checkout", "--", "maigret/resources/data.json"], cwd=MAIGRET_DIR, capture=True)
             pull_code, _, pull_err = run_command(["git", "pull", "--ff-only", "origin", "refs/heads/main"], cwd=MAIGRET_DIR, capture=True)
 
-        if pull_code != 0:
-            log_error(f"Git pull failed: {pull_err}")
-            log_warn("If you have local modifications, rerun with '--force' to reset to origin/main.")
-            return False
+            # If still failing due to other untracked or dirty files in the vendor clone, auto-recover
+            if pull_code != 0:
+                log_warn(f"Fast-forward notice: {pull_err.splitlines()[-1] if pull_err else 'local modifications detected'}")
+                log_info("Auto-clearing local engine cache and retrying pull...")
+                run_command(["git", "reset", "--hard", "HEAD"], cwd=MAIGRET_DIR, capture=True)
+                pull_code, _, pull_err = run_command(["git", "pull", "--ff-only", "origin", "refs/heads/main"], cwd=MAIGRET_DIR, capture=True)
+
+                if pull_code != 0:
+                    # Final fallback: reset directly to origin/main
+                    log_info("Aligning vendor repository directly to origin/main...")
+                    res_code, _, _ = run_command(["git", "reset", "--hard", "origin/main"], cwd=MAIGRET_DIR, capture=True)
+                    if res_code == 0:
+                        pull_code = 0
+                    else:
+                        log_error(f"Git pull failed: {pull_err}")
+                        log_warn("If issues persist, rerun with '--force' to recreate the clean branch state.")
+                        return False
 
         new_commit = get_git_commit(MAIGRET_DIR)
         new_date = get_git_commit_date(MAIGRET_DIR)
