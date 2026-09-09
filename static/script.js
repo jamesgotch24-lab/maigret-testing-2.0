@@ -272,6 +272,9 @@ function connectWebSocket() {
                 }
                 loadOverviewData();
                 loadHistoryData();
+                if (data.action === "deleted") {
+                    resetReportViewer();
+                }
             } else if (data.type === "engine_info_updated") {
                 applyEngineMeta(data.data);
             }
@@ -529,10 +532,13 @@ async function loadHistoryData() {
                     }
                     const targetReport = `${jobFolder}/${filename}`;
                     reportsContainer.innerHTML += `
-                        <div class="metric-card clickable-row" style="padding: 14px; margin-bottom: 8px;" onclick="previewReport('${targetReport}', '${rtype}', '${displayName}', '${escapeHtml(job.username)}')">
+                        <div class="metric-card clickable-row" style="padding: 14px; margin-bottom: 8px;" onclick="previewReport('${targetReport}', '${rtype}', '${displayName}', '${escapeHtml(job.username)}', ${job.id})">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <h4 style="color: var(--accent-gold); font-size: 0.95rem;">${escapeHtml(job.username)}</h4>
-                                <span class="badge" style="background: rgba(234, 179, 8, 0.15); color: var(--accent-gold); font-size: 0.7rem;">${displayName}</span>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span class="badge" style="background: rgba(234, 179, 8, 0.15); color: var(--accent-gold); font-size: 0.7rem;">${displayName}</span>
+                                    <button class="btn-danger" style="padding: 2px 8px; font-size: 0.7rem; line-height: 1.2;" title="Delete this search and associated reports" onclick="deleteJob(event, ${job.id})">Delete</button>
+                                </div>
                             </div>
                             <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Job #${job.id} • ${job.created_at || ''}</div>
                         </div>
@@ -546,19 +552,25 @@ async function loadHistoryData() {
 }
 
 async function deleteJob(event, jobId) {
-    event.stopPropagation();
-    if (!confirm(`Permanently delete Investigation #${jobId}?`)) return;
+    if (event) event.stopPropagation();
+    if (!confirm(`Permanently delete Investigation #${jobId} and remove all associated reports?`)) return;
     try {
-        await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
-        loadOverviewData();
-        loadHistoryData();
-        resetReportViewer();
+        const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadOverviewData();
+            loadHistoryData();
+            resetReportViewer();
+            closeModal('investigationModal');
+        } else {
+            const data = await res.json().catch(() => ({}));
+            alert(data.detail || "Failed to delete job.");
+        }
     } catch (err) {
         alert("Failed to delete job.");
     }
 }
 
-async function previewReport(url, rtype, displayName, username) {
+async function previewReport(url, rtype, displayName, username, jobId) {
     const container = document.getElementById('report-viewport-container');
     if (!container) return;
 
@@ -576,6 +588,7 @@ async function previewReport(url, rtype, displayName, username) {
             <div style="display: flex; gap: 8px; align-items: center;">
                 <a href="${url}" target="_blank" class="term-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">↗ Open in Tab</a>
                 <a href="${url}" download class="term-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">⬇ Download</a>
+                ${jobId ? `<button class="btn-danger" style="padding: 4px 10px; font-size: 0.75rem;" onclick="deleteJob(event, ${jobId})">🗑 Delete Report</button>` : ''}
             </div>
         </div>
     `;
@@ -745,16 +758,357 @@ async function viewInvestigation(jobId) {
                 linksDiv.appendChild(a);
             });
         }
+
+        const delBtn = document.getElementById('inv-modal-delete-btn');
+        if (delBtn) {
+            delBtn.style.display = 'inline-block';
+            delBtn.onclick = (e) => deleteJob(e, job.id);
+        }
+
         openModal('investigationModal');
     } catch (e) {
         alert("Failed to load investigation details.");
     }
 }
 
+// ==============================================================================
+// Visual Themes & Atmospheres System (21 Handcrafted Themes)
+// ==============================================================================
+const THEMES_CONFIG = [
+    {
+        id: "default",
+        name: "Default",
+        category: "noir",
+        tagline: "Gold & Obsidian Stealth",
+        description: "Official Maigret OSINT stealth suite in obsidian charcoal and gold accents.",
+        colors: { accent: "#eab308", bgMain: "#0a0a0c", bgPanel: "#121216", bgCard: "#18181f", border: "#272732", text: "#e2e8f0" }
+    },
+    {
+        id: "cyberpunk",
+        name: "Cyberpunk 2077",
+        category: "cyber",
+        tagline: "Night City High-Voltage Neon",
+        description: "Electric yellow, cyber cyan, and high-contrast dystopian dark alloys.",
+        colors: { accent: "#fcee0a", bgMain: "#080811", bgPanel: "#0e0e1a", bgCard: "#141424", border: "#383466", text: "#00f0ff" }
+    },
+    {
+        id: "dracula",
+        name: "Midnight Dracula",
+        category: "noir",
+        tagline: "Vampiric Crimson & Velvet Violet",
+        description: "Gothic nocturnal noir pairing deep mystical violet with cold crimson blood accents.",
+        colors: { accent: "#bd93f9", bgMain: "#0d0b14", bgPanel: "#14111f", bgCard: "#1a1628", border: "#382f54", text: "#f8f8f2" }
+    },
+    {
+        id: "matrix",
+        name: "Matrix Reloaded",
+        category: "cyber",
+        tagline: "Digital Rain Phosphor Terminal",
+        description: "Pure green CRT phosphor glow on abyssal black with terminal aesthetic highlights.",
+        colors: { accent: "#00ff66", bgMain: "#040a05", bgPanel: "#071409", bgCard: "#0b1e0f", border: "#164420", text: "#a7f3d0" }
+    },
+    {
+        id: "synthwave",
+        name: "Synthwave 1984",
+        category: "neon",
+        tagline: "Outrun Sunset Magenta & Cyan",
+        description: "Retro 80s arcade sunset vibe featuring vibrant hot magenta and electric cyan.",
+        colors: { accent: "#ff2a85", bgMain: "#120924", bgPanel: "#1b0e36", bgCard: "#241447", border: "#541e6e", text: "#fdf2f8" }
+    },
+    {
+        id: "nordic-frost",
+        name: "Nordic Frost",
+        category: "noir",
+        tagline: "Arctic Glacial Cyan & Fjord Slate",
+        description: "Cool, crisp Scandinavian minimalism with polar iceberg cyan and deep fjord slate.",
+        colors: { accent: "#38bdf8", bgMain: "#0b131e", bgPanel: "#111c2a", bgCard: "#162436", border: "#1e354f", text: "#f0f9ff" }
+    },
+    {
+        id: "tokyo-neon",
+        name: "Tokyo Neon Ghost",
+        category: "neon",
+        tagline: "Shinjuku Midnight & Electric Violet",
+        description: "Rain-slicked Shinjuku alleyways, neon signage, and radiant purple twilight.",
+        colors: { accent: "#c084fc", bgMain: "#0d0b18", bgPanel: "#151226", bgCard: "#1d1833", border: "#3b2d66", text: "#f3e8ff" }
+    },
+    {
+        id: "blood-moon",
+        name: "Blood Moon Eclipse",
+        category: "noir",
+        tagline: "Abyssal Crimson & Solar Flare",
+        description: "Ominous crimson eclipse with scorching solar flare hues and deep obsidian depths.",
+        colors: { accent: "#ef4444", bgMain: "#0f0607", bgPanel: "#18090b", bgCard: "#220e11", border: "#4c161a", text: "#fee2e2" }
+    },
+    {
+        id: "emerald-syndicate",
+        name: "Emerald Syndicate",
+        category: "luxury",
+        tagline: "Imperial Jade & Liquid Gold",
+        description: "Sovereign intelligence espionage, deep dark jade velvet, and champagne accents.",
+        colors: { accent: "#10b981", bgMain: "#04130e", bgPanel: "#081d16", bgCard: "#0e2920", border: "#155e4b", text: "#ecfdf5" }
+    },
+    {
+        id: "sunset-overdrive",
+        name: "Sunset Overdrive",
+        category: "neon",
+        tagline: "Amber Blaze & Tangerine Heat",
+        description: "Radiant desert horizon with glowing tangerine ambers and scorched dusk undertones.",
+        colors: { accent: "#f97316", bgMain: "#140905", bgPanel: "#1f0f08", bgCard: "#2a160d", border: "#542a17", text: "#ffedd5" }
+    },
+    {
+        id: "spec-ops",
+        name: "Spec-Ops Tactical",
+        category: "noir",
+        tagline: "Military OD Green & Camo Slate",
+        description: "Classified military surveillance center, radar phosphor lime, and tactical slate.",
+        colors: { accent: "#84cc16", bgMain: "#0d120a", bgPanel: "#131a0e", bgCard: "#1a2414", border: "#2d3f22", text: "#ecfccb" }
+    },
+    {
+        id: "mariana-abyss",
+        name: "Mariana Abyss",
+        category: "cyber",
+        tagline: "Bioluminescent Aqua & Deep Ocean",
+        description: "Crushing deep-sea oceanic trench with glowing bioluminescent aqua tones.",
+        colors: { accent: "#06b6d4", bgMain: "#041017", bgPanel: "#071824", bgCard: "#0c2233", border: "#113a56", text: "#e0f2fe" }
+    },
+    {
+        id: "rose-royale",
+        name: "Rose Quartz Royale",
+        category: "luxury",
+        tagline: "Luxury Rose Gold & Velvet Plum",
+        description: "Diplomatic high-society intelligence, warm metallic rose gold, and dark plum.",
+        colors: { accent: "#fb7185", bgMain: "#150810", bgPanel: "#1f0d19", bgCard: "#2a1223", border: "#521f42", text: "#ffe4e6" }
+    },
+    {
+        id: "amethyst-nebula",
+        name: "Amethyst Nebula",
+        category: "neon",
+        tagline: "Cosmic Starlight & Deep Galaxy",
+        description: "Deep interstellar cosmos framed by radiant purple nebula dust and distant stars.",
+        colors: { accent: "#a855f7", bgMain: "#0b0717", bgPanel: "#120c26", bgCard: "#1a1236", border: "#37256e", text: "#faf5ff" }
+    },
+    {
+        id: "monochrome-noir",
+        name: "Monochrome Noir",
+        category: "noir",
+        tagline: "Brutalist Stark White & OLED Pitch",
+        description: "Ultra-clean minimalist brutalism. Pure pitch OLED black and surgical white.",
+        colors: { accent: "#ffffff", bgMain: "#000000", bgPanel: "#0a0a0a", bgCard: "#121212", border: "#27272a", text: "#ffffff" }
+    },
+    {
+        id: "steampunk-forge",
+        name: "Steampunk Forge",
+        category: "luxury",
+        tagline: "Burnished Bronze & Smoked Iron",
+        description: "Victorian industrial gears, rich antique brass, and furnace-tempered iron.",
+        colors: { accent: "#d97706", bgMain: "#120c08", bgPanel: "#1b120c", bgCard: "#241911", border: "#48301f", text: "#fef3c7" }
+    },
+    {
+        id: "hyper-vapor",
+        name: "Hyper-Vapor",
+        category: "neon",
+        tagline: "Pastel Mint & Bubblegum Pink",
+        description: "Dreamlike nostalgic vapor aesthetics with pastel cotton candy and twilight purple.",
+        colors: { accent: "#f472b6", bgMain: "#100d1c", bgPanel: "#171328", bgCard: "#201b38", border: "#403569", text: "#fce7f3" }
+    },
+    {
+        id: "radioactive-hazard",
+        name: "Radioactive Hazard",
+        category: "cyber",
+        tagline: "Toxic Neon Chartreuse & Graphite",
+        description: "Biohazard quarantine facility with radioactive neon chartreuse and bunker graphite.",
+        colors: { accent: "#a3e635", bgMain: "#090e06", bgPanel: "#0f170b", bgCard: "#162211", border: "#2e4720", text: "#f7fee7" }
+    },
+    {
+        id: "imperial-sapphire",
+        name: "Imperial Sapphire",
+        category: "luxury",
+        tagline: "Royal Sovereign Cobalt & Crown Gold",
+        description: "Regal sovereign authority with brilliant royal sapphire and rich gold adornments.",
+        colors: { accent: "#3b82f6", bgMain: "#060b17", bgPanel: "#0a1226", bgCard: "#0f1b38", border: "#1d356d", text: "#eff6ff" }
+    },
+    {
+        id: "ghost-protocol",
+        name: "Ghost Protocol",
+        category: "noir",
+        tagline: "Phantom Titanium & Glacial Silver",
+        description: "Untraceable black-ops ghost operative with cool titanium silver and stealth carbon.",
+        colors: { accent: "#cbd5e1", bgMain: "#0c0e12", bgPanel: "#13171f", bgCard: "#1a202c", border: "#2d3748", text: "#f8fafc" }
+    },
+    {
+        id: "laser-alert",
+        name: "Laser Red Alert",
+        category: "cyber",
+        tagline: "DEFCON-1 Critical Breach Ruby",
+        description: "High-security emergency war room with intense laser ruby glows and warning indicators.",
+        colors: { accent: "#ff1a40", bgMain: "#140407", bgPanel: "#1f070b", bgCard: "#2a0a0f", border: "#5c151e", text: "#ffe4e6" }
+    }
+];
+
+let currentActiveTheme = "default";
+let currentSelectedThemeCategory = "all";
+
+function applyTheme(themeId, shouldSave = true) {
+    const theme = THEMES_CONFIG.find(t => t.id === themeId) || THEMES_CONFIG[0];
+    currentActiveTheme = theme.id;
+
+    if (theme.id === "default") {
+        document.documentElement.removeAttribute('data-theme');
+    } else {
+        document.documentElement.setAttribute('data-theme', theme.id);
+    }
+
+    if (shouldSave) {
+        try {
+            localStorage.setItem('maigret_active_theme', theme.id);
+        } catch (e) {}
+    }
+
+    const pill = document.getElementById('active-theme-pill');
+    if (pill) {
+        pill.innerText = theme.name;
+    }
+
+    document.querySelectorAll('.theme-card').forEach(card => {
+        const tid = card.getAttribute('data-theme-id');
+        const applyBtn = card.querySelector('.theme-apply-btn');
+        const themeObj = THEMES_CONFIG.find(t => t.id === tid);
+        const c = themeObj ? themeObj.colors : { accent: '#eab308' };
+
+        if (tid === theme.id) {
+            card.classList.add('active');
+            if (applyBtn) {
+                applyBtn.innerText = '✓ Active Theme';
+                applyBtn.style.background = c.accent;
+                applyBtn.style.color = '#000';
+            }
+        } else {
+            card.classList.remove('active');
+            if (applyBtn) {
+                applyBtn.innerText = 'Apply Theme';
+                applyBtn.style.background = 'transparent';
+                applyBtn.style.color = c.accent;
+            }
+        }
+    });
+}
+
+function renderThemeCards() {
+    const container = document.getElementById('themes-grid-container');
+    if (!container) return;
+
+    const searchTerm = (document.getElementById('theme-search-input')?.value || '').toLowerCase().trim();
+    container.innerHTML = '';
+
+    const filtered = THEMES_CONFIG.filter(t => {
+        const matchesCat = (currentSelectedThemeCategory === 'all' || t.category === currentSelectedThemeCategory);
+        const matchesSearch = !searchTerm ||
+            t.name.toLowerCase().includes(searchTerm) ||
+            t.tagline.toLowerCase().includes(searchTerm) ||
+            t.description.toLowerCase().includes(searchTerm);
+        return matchesCat && matchesSearch;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-dim);">No themes match your search query.</div>`;
+        return;
+    }
+
+    filtered.forEach(theme => {
+        const isActive = theme.id === currentActiveTheme;
+        const c = theme.colors;
+
+        const card = document.createElement('div');
+        card.className = `theme-card ${isActive ? 'active' : ''}`;
+        card.setAttribute('data-theme-id', theme.id);
+        card.onclick = () => applyTheme(theme.id);
+
+        card.innerHTML = `
+            <div class="theme-card-header">
+                <div>
+                    <h4 class="theme-card-title">${escapeHtml(theme.name)}</h4>
+                    <div class="theme-card-tagline">${escapeHtml(theme.tagline)}</div>
+                </div>
+                <span class="theme-card-status-pill">Active</span>
+            </div>
+
+            <div class="theme-swatches">
+                <span class="theme-swatch" style="background: ${c.accent}; box-shadow: 0 0 6px ${c.accent}88;" title="Primary Accent: ${c.accent}"></span>
+                <span class="theme-swatch" style="background: ${c.bgMain};" title="Background: ${c.bgMain}"></span>
+                <span class="theme-swatch" style="background: ${c.bgPanel};" title="Panel/Sidebar: ${c.bgPanel}"></span>
+                <span class="theme-swatch" style="background: ${c.bgCard};" title="Card: ${c.bgCard}"></span>
+                <span class="theme-swatch" style="background: ${c.border};" title="Border: ${c.border}"></span>
+            </div>
+
+            <div class="theme-mini-mockup" style="background: ${c.bgCard}; border-color: ${c.border};">
+                <div class="theme-mockup-row">
+                    <span style="font-weight: 700; color: ${c.text}; font-size: 0.72rem;">Target Intelligence</span>
+                    <span class="theme-mockup-badge" style="background: ${c.accent}22; color: ${c.accent}; border: 1px solid ${c.accent};">ACTIVE</span>
+                </div>
+                <div class="theme-mockup-row" style="margin-top: 2px;">
+                    <span style="color: ${c.accent}; font-weight: 800; font-family: var(--font-term); font-size: 0.85rem;">4,990 SITES</span>
+                    <button class="theme-mockup-btn" style="background: ${c.accent}; color: #000;">Inspect</button>
+                </div>
+            </div>
+
+            <p class="theme-card-desc">${escapeHtml(theme.description)}</p>
+
+            <button class="theme-apply-btn" style="background: ${isActive ? c.accent : 'transparent'}; color: ${isActive ? '#000' : c.accent}; border-color: ${c.accent};" onclick="event.stopPropagation(); applyTheme('${theme.id}')">
+                ${isActive ? '✓ Active Theme' : 'Apply Theme'}
+            </button>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function openThemeModal() {
+    openModal('themesModal');
+    renderThemeCards();
+    const searchInput = document.getElementById('theme-search-input');
+    if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+    }
+}
+
+function handleThemeBackdropClick(e) {
+    if (e.target && e.target.id === 'themesModal') {
+        closeModal('themesModal');
+    }
+}
+
+function filterThemes() {
+    renderThemeCards();
+}
+
+function filterThemeCategory(cat, btnEl) {
+    currentSelectedThemeCategory = cat;
+    document.querySelectorAll('.theme-cat-pill').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
+    renderThemeCards();
+}
+
+function initThemeSystem() {
+    let saved = "default";
+    try {
+        saved = localStorage.getItem('maigret_active_theme') || "default";
+    } catch (e) {}
+    applyTheme(saved, false);
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeModal('themesModal');
+            closeModal('investigationModal');
+        }
+    });
+}
+
 // ------------------------------------------------------------------------------
 // Initialization
 // ------------------------------------------------------------------------------
 window.onload = function () {
+    initThemeSystem();
     connectWebSocket();
     initTerminalInput();
     fetch('/api/engine/info').then(r => r.json()).then(applyEngineMeta).catch(() => {});

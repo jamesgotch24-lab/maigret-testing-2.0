@@ -208,6 +208,59 @@ def load_db():
                 save_db()
         except Exception as e:
             print(f"Error loading DB: {e}")
+    cleanup_orphaned_reports()
+
+def force_remove_path(target_path: str):
+    """Force remove file or directory even if locked with read-only or OneDrive attributes on Windows."""
+    if not os.path.exists(target_path):
+        return
+
+    if os.path.isfile(target_path):
+        try:
+            if sys.platform == "win32":
+                subprocess.run(["attrib", "-r", "-s", "-h", target_path], capture_output=True, timeout=3)
+            os.remove(target_path)
+            return
+        except Exception:
+            pass
+
+    if sys.platform == "win32":
+        try:
+            abs_p = os.path.abspath(target_path)
+            subprocess.run(["attrib", "-r", "-s", "-h", f"{abs_p}\\*.*", "/s", "/d"], capture_output=True, timeout=5)
+            subprocess.run(["attrib", "-r", "-s", "-h", abs_p], capture_output=True, timeout=5)
+            subprocess.run(["cmd", "/c", "rd", "/s", "/q", abs_p], capture_output=True, timeout=10)
+            if not os.path.exists(target_path):
+                return
+        except Exception:
+            pass
+
+    def _on_rm_error(func, path, exc_info):
+        try:
+            os.chmod(path, 0o777)
+            func(path)
+        except Exception:
+            pass
+
+    try:
+        shutil.rmtree(target_path, onerror=_on_rm_error)
+    except Exception:
+        try:
+            shutil.rmtree(target_path, ignore_errors=True)
+        except Exception:
+            pass
+
+def cleanup_orphaned_reports():
+    """Remove any reports/job_<id> folders that no longer exist in search_history.json."""
+    if not os.path.exists("reports"):
+        return
+    for item in os.listdir("reports"):
+        if item.startswith("job_"):
+            jid_str = item[4:]
+            if jid_str.isdigit() and int(jid_str) not in jobs_db:
+                folder = os.path.join("reports", item)
+                if os.path.isdir(folder):
+                    force_remove_path(folder)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -647,12 +700,52 @@ async def cancel_job(job_id: int):
         return {"status": "cancelling"}
     return {"status": "inactive"}
 
-@app.delete("/api/jobs/{job_id}")
-async def delete_job(job_id: int):
+def remove_investigation_and_reports(job_id: int) -> bool:
+    found = False
+
+    # 1. Terminate running process if any and remove from jobs_db
     if job_id in jobs_db:
+        found = True
+        job = jobs_db[job_id]
+        if job.status == "running":
+            job.cancel_event.set()
+            if job.process and job.process.poll() is None:
+                try:
+                    job.process.terminate()
+                except Exception:
+                    pass
+
+        safe_uname = job.username.lower().replace('/', '_')
+        other_jobs = [
+            j for jid, j in jobs_db.items()
+            if jid != job_id and j.username.lower().replace('/', '_') == safe_uname
+        ]
+
+        # Clean up loose reports directly under reports/ if no other search targets this username
+        if not other_jobs and os.path.exists("reports"):
+            for fname in os.listdir("reports"):
+                if fname.lower().startswith(f"report_{safe_uname}"):
+                    fpath = os.path.join("reports", fname)
+                    if os.path.isfile(fpath):
+                        force_remove_path(fpath)
+
         del jobs_db[job_id]
         save_db()
-        return {"status": "deleted"}
+
+    # 2. Recursively delete the associated reports folder (reports/job_<job_id>)
+    job_folder = os.path.join("reports", f"job_{job_id}")
+    if os.path.exists(job_folder):
+        found = True
+        force_remove_path(job_folder)
+
+    return found
+
+@app.delete("/api/jobs/{job_id}")
+@app.delete("/api/reports/{job_id}")
+async def delete_job(job_id: int):
+    if remove_investigation_and_reports(job_id):
+        await broadcast_message({"type": "job_status", "job_id": job_id, "action": "deleted"})
+        return {"status": "deleted", "job_id": job_id}
     raise HTTPException(status_code=404, detail="Investigation not found.")
 
 @app.get("/html")
@@ -759,6 +852,7 @@ async def execute_terminal_command(req: CommandRequest):
                 "  cancel                         Halt active search\n"
                 "  investigations / jobs          Display recent dossier investigations\n"
                 "  open <id>                      Navigate GUI to investigation #<id>\n"
+                "  delete <id>                    Permanently remove search from history and its reports\n"
                 "  status                         Show running job status\n"
                 "  clear                          Clear terminal display\n"
             )
@@ -785,6 +879,16 @@ async def execute_terminal_command(req: CommandRequest):
         if target_id not in jobs_db:
             return {"output": f"Error: Investigation #{target_id} does not exist.\n"}
         return {"output": f"[✓] Navigating to #{target_id}...\n", "action": "open_investigation", "job_id": target_id}
+
+    if primary in ("delete", "remove"):
+        if len(tokens) < 2 or not tokens[1].isdigit():
+            return {"output": "Usage: delete <id>\n"}
+        target_id = int(tokens[1])
+        if target_id not in jobs_db and not os.path.exists(os.path.join("reports", f"job_{target_id}")):
+            return {"output": f"Error: Investigation #{target_id} does not exist.\n"}
+        remove_investigation_and_reports(target_id)
+        await broadcast_message({"type": "job_status", "job_id": target_id, "action": "deleted"})
+        return {"output": f"[✓] Investigation #{target_id} and all associated reports deleted.\n"}
 
     if primary == "cancel":
         for j in jobs_db.values():
