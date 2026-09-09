@@ -734,6 +734,10 @@ async def favicon():
         return FileResponse(favicon_path)
     return Response(status_code=204)
 
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools_json():
+    return Response(content="{}", media_type="application/json")
+
 @app.get("/")
 async def serve_index():
     # Return index.html from the 'static' folder
